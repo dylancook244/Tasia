@@ -1,12 +1,13 @@
 #ifndef __EXPR_AST_H__
 #define __EXPR_AST_H__
 
-#include "llvm/IR/BasicBlock.h"
+#include "ASTNode.h"
 
-class ExprAST {
+// Base class for all expression nodes
+class ExprAST : public ASTNode {
 public:
-  virtual ~ExprAST() {}
-  virtual llvm::Value *codegen() = 0;
+    ExprAST() = default;
+    virtual ~ExprAST() = default;
 };
 
-#endif
+#endif // __EXPR_AST_H__

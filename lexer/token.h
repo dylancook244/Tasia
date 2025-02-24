@@ -4,16 +4,17 @@
 // The lexer returns tokens [0-255] if it's an unknown character
 // otherwise it returns one of these for known things
 enum Token {
-  // End Of File
+  // End Of File or line
   tok_eof = -1,
+  tok_line_end = -2,
 
   // Commands
-  tok_def = -2,
-  tok_extern = -3,
+  tok_func = -3,
+  tok_extern = -4,
 
   // Primary
-  tok_identifier = -4,
-  tok_number = -5,
+  tok_identifier = -5,
+  tok_number = -6,
 };
 
 #endif

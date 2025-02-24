@@ -1,22 +1,30 @@
-#ifndef __LEXER_H__
-#define __LEXER_H__
+#ifndef LEXER_H
+#define LEXER_H
 
-#include <cstdlib>
+#include "lexer/token.h"
 #include <string>
 
-// Provide a simple token buffer
-// CurTok is the current token the parser is looking at
-// getNextToken reads another token from the lexer and updates CurTok with its results
-extern int CurTok;
-int gettok();
-int getNextToken();
+class Lexer {
+    private: 
+        // source code we're processing and position in that processing
+        std::string sourceBuffer;
+        size_t currentPosition;
 
-// If the current token is an identifier
-// IdentifierStr will hold the name of the identifier
-extern std::string IdentifierStr;
+        std::string identifierStr;
+        double numVal;
+        int lastChar;
 
-// If the current token is a numeric literal
-// NumVal holds its value
-extern double NumVal;
+        char getNextChar();
 
-#endif
+    public:
+        // constructor
+        Lexer(const std::string& source);
+
+        int getNextToken();
+
+        std::string getIdentifier() const { return identifierStr; }
+        double getNumber() const { return numVal; }
+
+};
+
+#endif // LEXER_H

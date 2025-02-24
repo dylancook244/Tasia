@@ -1,16 +1,23 @@
 #ifndef __NUMBER_EXPR_AST_H__
 #define __NUMBER_EXPR_AST_H__
 
-#include "ast/ExprAST.h"
-#include "kaleidoscope/kaleidoscope.h"
+#include "ExprAST.h"
+#include <sstream>
 
-// Expression class for numeric literals like "1.0"
 class NumberExprAST : public ExprAST {
-  double Val;
-
+private:
+    double val;
+    
 public:
-  NumberExprAST(double Val) : Val(Val) {}
-  llvm::Value *codegen() override;
+    NumberExprAST(double val) : val(val) {}
+    
+    double getValue() const { return val; }
+    
+    virtual std::string toString() const override {
+        std::stringstream ss;
+        ss << "NumberExpr(" << val << ")";
+        return ss.str();
+    }
 };
 
-#endif
+#endif // __NUMBER_EXPR_AST_H__

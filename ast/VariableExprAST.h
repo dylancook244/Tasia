@@ -1,16 +1,21 @@
 #ifndef __VARIABLE_EXPR_AST_H__
 #define __VARIABLE_EXPR_AST_H__
 
-#include "ast/ExprAST.h"
-#include "logger/logger.h"
+#include "ExprAST.h"
+#include <string>
 
-// Expression class for referencing a variable, like "a"
 class VariableExprAST : public ExprAST {
-  std::string Name;
-
+private:
+    std::string name;
+    
 public:
-  VariableExprAST(const std::string &Name) : Name(Name) {}
-  llvm::Value *codegen() override;
+    VariableExprAST(const std::string& name) : name(name) {}
+    
+    const std::string& getName() const { return name; }
+    
+    virtual std::string toString() const override {
+        return "VarExpr(" + name + ")";
+    }
 };
 
-#endif
+#endif // __VARIABLE_EXPR_AST_H__

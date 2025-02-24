@@ -1,21 +1,31 @@
 #ifndef __PROTOTYPE_AST_H__
 #define __PROTOTYPE_AST_H__
 
-#include "ast/ExprAST.h"
-#include "llvm/IR/IRBuilder.h"
-#include "kaleidoscope/kaleidoscope.h"
+#include "ASTNode.h"
+#include <string>
+#include <vector>
 
-// Represents the "prototype" for a function,
-// which captures its name, and its argument names
-class PrototypeAST {
-  std::string Name;
-  std::vector<std::string> Args;
-
+class PrototypeAST : public ASTNode {
+private:
+    std::string name;
+    std::vector<std::string> args;
+    
 public:
-  PrototypeAST(const std::string &name, std::vector<std::string> Args) : Name(name), Args(std::move(Args)) {}
-
-  llvm::Function *codegen();
-  const std::string &getName() const { return Name; }
+    PrototypeAST(const std::string& name, std::vector<std::string> args)
+        : name(name), args(std::move(args)) {}
+    
+    const std::string& getName() const { return name; }
+    const std::vector<std::string>& getArgs() const { return args; }
+    
+    virtual std::string toString() const override {
+        std::string result = "Proto(" + name + ", [";
+        for (size_t i = 0; i < args.size(); ++i) {
+            if (i > 0) result += ", ";
+            result += args[i];
+        }
+        result += "])";
+        return result;
+    }
 };
 
-#endif
+#endif // __PROTOTYPE_AST_H__
