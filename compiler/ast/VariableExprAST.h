@@ -11,7 +11,7 @@ private:
 public:
     VariableExprAST(const std::string& name) : name(name) {}
     
-    const std::string& getName() const { return name; }
+    const std::string &getName() const { return name; }
     
     virtual std::string toString() const override {
         return "VarExpr(" + name + ")";

@@ -15,7 +15,7 @@ private:
     std::string sourceFile;
     
 public:
-    Program(const std::string& source = "") : sourceFile(source) {}
+    Program(const std::string &source = "") : sourceFile(source) {}
     
     void addFunction(std::unique_ptr<FunctionAST> func) {
         functions.push_back(std::move(func));
@@ -25,15 +25,15 @@ public:
         statements.push_back(std::move(stmt));
     }
     
-    const std::vector<std::unique_ptr<FunctionAST>>& getFunctions() const {
+    const std::vector<std::unique_ptr<FunctionAST>> &getFunctions() const {
         return functions;
     }
     
-    const std::vector<std::unique_ptr<StmtAST>>& getStatements() const {
+    const std::vector<std::unique_ptr<StmtAST>> &getStatements() const {
         return statements;
     }
     
-    const std::string& getSourceFile() const {
+    const std::string &getSourceFile() const {
         return sourceFile;
     }
     

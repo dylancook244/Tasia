@@ -1,6 +1,5 @@
+make install &&
+tasia run hello.sia
 
-
-make &&
-./bin/Tasia hello.sia &&
-clang runner.c hello.o -o hello_program &&
-./hello_program
+to check version (rust example):
+curl -s "https://api.github.com/repos/rust-lang/rust/releases/latest" | grep '"tag_name":' | cut -d'"' -f4

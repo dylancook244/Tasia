@@ -11,11 +11,11 @@ private:
     std::vector<std::string> args;
     
 public:
-    PrototypeAST(const std::string& name, std::vector<std::string> args)
+    PrototypeAST(const std::string &name, std::vector<std::string> args)
         : name(name), args(std::move(args)) {}
     
-    const std::string& getName() const { return name; }
-    const std::vector<std::string>& getArgs() const { return args; }
+    const std::string &getName() const { return name; }
+    const std::vector<std::string> &getArgs() const { return args; }
     
     virtual std::string toString() const override {
         std::string result = "Proto(" + name + ", [";

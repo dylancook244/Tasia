@@ -1,7 +1,7 @@
 #include "parser/parser.h"
 
 // Constructor initializes the parser
-Parser::Parser(Lexer &lex, const std::string &filename) 
+Parser::Parser(Lexer& lex, const std::string& filename) 
     : lexer(lex), 
       currentToken(lex.getNextToken()),
       currentFilename(filename) 
@@ -21,17 +21,17 @@ int Parser::getNextToken() {
 }
 
 // Error handling methods
-void Parser::addError(const std::string &msg) {
+void Parser::addError(const std::string& msg) {
     // In a more advanced implementation, we would get line/column from lexer
     errors.push_back({msg, {currentFilename, 0, 0}});
 }
 
-std::unique_ptr<ExprAST> Parser::logError(const char *str) {
+std::unique_ptr<ExprAST> Parser::logError(const char* str) {
     addError(str);
     return nullptr;
 }
 
-std::unique_ptr<PrototypeAST> Parser::logErrorP(const char *str) {
+std::unique_ptr<PrototypeAST> Parser::logErrorP(const char* str) {
     addError(str);
     return nullptr;
 }
@@ -112,6 +112,12 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
 std::unique_ptr<ExprAST> Parser::parsePrimary() {
     switch (currentToken) {
         default:
+            if (currentToken == '}') {
+                // We found a closing brace outside a block - could be an error
+                // But we need to consume it and return something to break infinite loop
+                getNextToken(); // consume the '}'
+                return logError("Unexpected closing brace '}'");
+            }
             return logError("Unknown token when expecting an expression");
         case tok_identifier:
             return parseIdentifierExpr();
@@ -119,6 +125,8 @@ std::unique_ptr<ExprAST> Parser::parsePrimary() {
             return parseNumberExpr();
         case '(':
             return parseParenExpr();
+        case '{':
+            return parseBlockExpr();
     }
 }
 
@@ -160,12 +168,55 @@ std::unique_ptr<ExprAST> Parser::parseExpression() {
     return parseBinOpRHS(0, std::move(LHS));
 }
 
+std::unique_ptr<ExprAST> Parser::parseBlockExpr() {
+    getNextToken(); // eat '{'
+    
+    std::vector<std::unique_ptr<ExprAST>> expressions;
+    
+    // Parse expressions until we hit closing brace
+    while (currentToken != '}' && currentToken != tok_eof) {
+        // Skip empty lines
+        if (currentToken == tok_line_end) {
+            getNextToken();
+            continue;
+        }
+        
+        auto expr = parseExpression();
+        if (!expr) {
+            return nullptr;
+        }
+        
+        // Allow but don't require line ends between expressions
+        // Just add the expression to our list
+        expressions.push_back(std::move(expr));
+        
+        // If we see a line end, consume it
+        if (currentToken == tok_line_end) {
+            getNextToken();
+        }
+    }
+    
+    if (currentToken != '}') {
+        return logError("Expected '}' at end of block");
+    }
+    getNextToken(); // eat '}'
+    
+    return std::make_unique<BlockExprAST>(std::move(expressions));
+}
+
+
 std::unique_ptr<PrototypeAST> Parser::parsePrototype() {
     if (currentToken != tok_identifier) {
         return logErrorP("Expected function name in prototype");
     }
 
     std::string fnName = lexer.getIdentifier();
+
+    // rename the entry point so we can use main() in tasia
+    if (fnName == "main") {
+        fnName = "TASIA_ENTRY_FUNCTION";
+    }
+
     getNextToken(); // eat function name
 
     if (currentToken != '(') {
@@ -194,11 +245,19 @@ std::unique_ptr<FunctionAST> Parser::parseDefinition() {
         return nullptr;
     }
 
-    if (auto expr = parseExpression()) {
-        return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
+    // Require a block for function body
+    if (currentToken != '{') {
+        logError("Expected '{' to begin function body");
+        return nullptr;
     }
-
-    return nullptr;
+    
+    // Parse the block
+    auto blockExpr = parseBlockExpr();
+    if (!blockExpr) {
+        return nullptr;
+    }
+    
+    return std::make_unique<FunctionAST>(std::move(proto), std::move(blockExpr));
 }
 
 std::unique_ptr<PrototypeAST> Parser::parseExtern() {

@@ -10,7 +10,7 @@ struct SourceLocation {
     int column;
     
     SourceLocation() : line(0), column(0) {}
-    SourceLocation(const std::string& file, int l, int c) 
+    SourceLocation(const std::string &file, int l, int c) 
         : filename(file), line(l), column(c) {}
 };
 
@@ -25,7 +25,7 @@ public:
     
     // Source location tracking
     void setLocation(const SourceLocation& loc) { location = loc; }
-    const SourceLocation& getLocation() const { return location; }
+    const SourceLocation &getLocation() const { return location; }
     
     // For debugging
     virtual std::string toString() const = 0;

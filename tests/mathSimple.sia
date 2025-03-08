@@ -1,0 +1,8 @@
+# Current style without blocks
+func square(x) {
+  x * x
+}
+
+func main() {
+  42 * square(2)
+}

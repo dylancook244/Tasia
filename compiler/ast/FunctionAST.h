@@ -16,8 +16,8 @@ public:
                std::unique_ptr<ExprAST> body)
         : proto(std::move(proto)), body(std::move(body)) {}
     
-    PrototypeAST* getPrototype() const { return proto.get(); }
-    ExprAST* getBody() const { return body.get(); }
+    PrototypeAST *getPrototype() const { return proto.get(); }
+    ExprAST *getBody() const { return body.get(); }
     
     virtual std::string toString() const override {
         return "Function(" + 

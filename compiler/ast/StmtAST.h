@@ -12,7 +12,7 @@ private:
 public:
     StmtAST(std::unique_ptr<ExprAST> expr) : expr(std::move(expr)) {}
     
-    ExprAST* getExpression() const { return expr.get(); }
+    ExprAST *getExpression() const { return expr.get(); }
     
     virtual std::string toString() const override {
         return "Stmt(" + (expr ? expr->toString() : "null") + ")";

@@ -1,0 +1,15 @@
+# example.sia - A more complete Tasia example
+# This shows both functions and blocks
+
+# Helper function for calculation
+func square(x) {
+  2 + 2
+  x * x
+}
+
+func main() {
+  # This is a block with multiple expressions
+  square(4)
+  123 + 93
+  42 * square(2)
+}

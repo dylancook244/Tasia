@@ -1,0 +1,56 @@
+=== TASIA COMPILER DEBUG OUTPUT ===
+
+Source file: hello.sia
+Output file: hello.o
+
+
+=== SOURCE CODE ===
+
+   1 | # hello.sia
+   2 | func main()
+   3 |   123+93
+   4 | 
+   5 | 
+
+
+=== TOKEN DUMP ===
+
+FUNC
+IDENTIFIER(main)
+CHAR('(')
+CHAR(')')
+NUMBER(123.000000)
+CHAR('+')
+NUMBER(93.000000)
+EOF
+
+
+=== AST DUMP ===
+
+Program(hello.sia,
+  Functions: [Function(Proto(TASIA_ENTRY_FUNCTION, []), BinExpr(add, NumberExpr(123), NumberExpr(93)))],
+  Statements: []
+)
+
+
+=== LLVM IR DUMP ===
+
+; ModuleID = 'hello.sia'
+source_filename = "hello.sia"
+
+define double @TASIA_ENTRY_FUNCTION() {
+entry:
+  ret double 2.160000e+02
+}
+
+
+=== OBJECT CODE DUMP ===
+
+hello.o:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000000000 <ltmp0>:
+       0: d2e80d68     	mov	x8, #0x406b000000000000 ; =4641803840935428096
+       4: 9e670100     	fmov	d0, x8
+       8: d65f03c0     	ret
