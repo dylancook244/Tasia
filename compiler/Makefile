@@ -5,12 +5,12 @@ ARCH := $(shell uname -m 2>/dev/null || echo x86_64)
 # Set up paths based on OS
 ifeq ($(OS),Darwin)
     # macOS
-    LLVM_PATH ?= /opt/homebrew/opt/llvm
+    LLVM_PATH ?= /opt/homebrew/opt/llvm@15
     INSTALL_DIR = /usr/local/bin
     SUDO = sudo
 else ifeq ($(OS),Linux)
     # Linux
-    LLVM_PATH ?= /usr/lib/llvm-16
+    LLVM_PATH ?= /usr/lib/llvm-15
     INSTALL_DIR = /usr/bin
     SUDO = sudo
 else
@@ -20,6 +20,20 @@ else
     SUDO =
     # Remove extra quotes after substitution for Windows commands
     LLVM_PATH_CLEAN := $(subst ",,$(subst \,/,$(LLVM_PATH)))
+endif
+
+# Version check for all platforms
+ifeq ($(OS),Windows)
+    LLVM_VERSION := $(shell "$(LLVM_PATH_CLEAN)/bin/llvm-config.exe" --version | cut -d. -f1)
+else
+    LLVM_VERSION := $(shell $(LLVM_PATH)/bin/llvm-config --version | cut -d. -f1)
+endif
+
+# Verify LLVM version 15
+REQUIRED_LLVM_VERSION := 15
+ifneq ($(LLVM_VERSION),$(REQUIRED_LLVM_VERSION))
+    $(warning LLVM version mismatch. Required: $(REQUIRED_LLVM_VERSION), Found: $(LLVM_VERSION))
+    $(warning This may cause compatibility issues with IR generation)
 endif
 
 # Dynamic compiler detection
@@ -55,8 +69,8 @@ endif
 
 # Handle LLVM flags differently on Windows
 ifeq ($(OS),Windows)
-    # Manually specify LLVM libraries for Windows
-    LLVMFLAGS = -L"$(LLVM_PATH_CLEAN)/lib" -lLLVMCore -lLLVMSupport -lLLVMX86CodeGen
+    # Manually specify LLVM libraries for Windows - specifically for LLVM 15
+    LLVMFLAGS = -L"$(LLVM_PATH_CLEAN)/lib" -lLLVMCore -lLLVMSupport -lLLVMX86CodeGen -lLLVMIR
 else
     LLVMFLAGS = $(shell $(LLVM_CONFIG) --cxxflags --ldflags --system-libs --libs all)
 endif
@@ -90,6 +104,7 @@ endif
 
 build_temp:
 	@echo "Building compiler..."
+	@echo "Using LLVM version $(LLVM_VERSION)"
 	$(CC) $(CXXFLAGS) $(INCLUDES) $(LLVMFLAGS) $(SOURCES) -o $(TEMP_TARGET)
 
 uninstall:
