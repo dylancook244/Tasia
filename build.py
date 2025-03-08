@@ -62,14 +62,22 @@ def install_dependencies():
     
     packages = ["llvm", "make"]
     if system == "Linux":
+        # Ubuntu needs special handling for newer LLVM versions
+        if os.path.exists("/etc/lsb-release") and "Ubuntu" in open("/etc/lsb-release").read():
+            # Install LLVM repository script and run it for version 19
+            subprocess.run("wget https://apt.llvm.org/llvm.sh", shell=True, check=True)
+            subprocess.run("chmod +x llvm.sh", shell=True, check=True)
+            subprocess.run("sudo ./llvm.sh 19", shell=True, check=True)
+            # No need to explicitly install LLVM packages as the script does that
+            packages = ["make"]
         # Fedora/RHEL/CentOS
-        if os.path.exists("/etc/fedora-release") or os.path.exists("/etc/redhat-release"):
+        elif os.path.exists("/etc/fedora-release") or os.path.exists("/etc/redhat-release"):
             packages.extend(["llvm-devel", "clang-devel"])
         # Arch Linux
         elif os.path.exists("/etc/arch-release"):
             packages.extend(["clang"])
-        # Debian/Ubuntu
-        elif os.path.exists("/etc/debian_version"):
+        # Debian (but not Ubuntu, which was handled above)
+        elif os.path.exists("/etc/debian_version") and not os.path.exists("/etc/lsb-release"):
             packages.extend(["llvm-dev", "clang"])
         # openSUSE
         elif os.path.exists("/etc/SuSE-release") or os.path.exists("/etc/opensuse-release"):
