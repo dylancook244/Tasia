@@ -10,7 +10,7 @@ ifeq ($(OS),Darwin)
     SUDO = sudo
 else ifeq ($(OS),Linux)
     # Linux
-    LLVM_PATH ?= /usr/lib/llvm-19
+    LLVM_PATH ?= /usr/lib/llvm16
     INSTALL_DIR = /usr/bin
     SUDO = sudo
 else
