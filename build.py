@@ -65,18 +65,38 @@ def install_dependencies():
         # Ubuntu needs special handling for newer LLVM versions
         # For Ubuntu, install LLVM 19 specifically
         if os.path.exists("/etc/lsb-release") and "Ubuntu" in open("/etc/lsb-release").read():
-            # Remove any existing LLVM installation to prevent conflicts
-            subprocess.run("sudo apt-get remove -y llvm llvm-dev clang", shell=True)
-            
-            # Download and run the LLVM installation script for version 19
+            # Install LLVM 19
             subprocess.run("wget https://apt.llvm.org/llvm.sh", shell=True, check=True)
             subprocess.run("chmod +x llvm.sh", shell=True, check=True)
             subprocess.run("sudo ./llvm.sh 19", shell=True, check=True)
             
-            # Force create symbolic links to ensure version 19 is used
-            subprocess.run("sudo ln -sf /usr/bin/clang-19 /usr/bin/clang", shell=True)
-            subprocess.run("sudo ln -sf /usr/bin/clang++-19 /usr/bin/clang++", shell=True)
-            subprocess.run("sudo ln -sf /usr/bin/llvm-config-19 /usr/bin/llvm-config", shell=True)
+            # Find out where llvm-config-19 is installed
+            llvm_config_path = subprocess.run(["which", "llvm-config-19"], 
+                                            capture_output=True, text=True).stdout.strip()
+            
+            if not llvm_config_path:
+                # If not found, look in typical locations
+                possible_paths = [
+                    "/usr/bin/llvm-config-19",
+                    "/usr/local/bin/llvm-config-19",
+                    "/usr/lib/llvm-19/bin/llvm-config"
+                ]
+                
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        llvm_config_path = path
+                        break
+            
+            if llvm_config_path:
+                # Create symlinks to ensure version 19 is used
+                llvm_bin_dir = os.path.dirname(llvm_config_path)
+                subprocess.run(f"sudo ln -sf {llvm_bin_dir}/clang-19 /usr/bin/clang", shell=True)
+                subprocess.run(f"sudo ln -sf {llvm_bin_dir}/clang++-19 /usr/bin/clang++", shell=True)
+                subprocess.run(f"sudo ln -sf {llvm_config_path} /usr/bin/llvm-config", shell=True)
+                
+                print(f"Created symlinks for LLVM 19 tools from {llvm_bin_dir}")
+            else:
+                print("WARNING: Could not find llvm-config-19. Check your LLVM installation.")
             
             # Only install make since LLVM is handled separately
             packages = ["make"]
