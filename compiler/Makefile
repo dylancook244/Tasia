@@ -1,64 +1,102 @@
 # Detect operating system
-OS := $(shell uname -s)
-ARCH := $(shell uname -m)
+OS := $(shell uname -s 2>/dev/null || echo Windows)
+ARCH := $(shell uname -m 2>/dev/null || echo x86_64)
 
-# Compiler and paths
-LLVM_PATH = /opt/homebrew/opt/llvm
-CC = $(LLVM_PATH)/bin/clang++
-LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config
-
-# Installation directories
+# Set up paths based on OS
 ifeq ($(OS),Darwin)
     # macOS
+    LLVM_PATH ?= /opt/homebrew/opt/llvm
     INSTALL_DIR = /usr/local/bin
+    SUDO = sudo
 else ifeq ($(OS),Linux)
     # Linux
+    LLVM_PATH ?= /usr/lib/llvm-16
     INSTALL_DIR = /usr/bin
+    SUDO = sudo
 else
-    # Windows or other
-    INSTALL_DIR = /usr/bin
+    # Windows
+    LLVM_PATH ?= C:/Program Files/LLVM
+    INSTALL_DIR = C:/Program Files/tasia/bin
+    SUDO =
+    # Use forward slashes even on Windows
+    LLVM_PATH := $(subst \,/,$(LLVM_PATH))
 endif
 
-# Source files
-SOURCES := $(shell find . -name "*.cpp")
+# Dynamic compiler detection
+ifeq ($(OS),Windows)
+    CC = $(LLVM_PATH)/bin/clang++.exe
+    LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config.exe
+    EXE_EXT = .exe
+else
+    CC = $(LLVM_PATH)/bin/clang++
+    LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config
+    EXE_EXT =
+endif
 
-# Compiler flags
-CXXFLAGS = -stdlib=libc++ -std=c++17 -g -O3
+# Source files (Windows-compatible)
+ifeq ($(OS),Windows)
+    SOURCES := $(shell dir /s /b *.cpp 2>NUL)
+else
+    SOURCES := $(shell find . -name "*.cpp")
+endif
+
+# Adjust flags for different platforms
+CXXFLAGS = -std=c++17 -g -O3
+ifeq ($(OS),Darwin)
+    CXXFLAGS += -stdlib=libc++
+endif
+
 INCLUDES = -I$(LLVM_PATH)/include -I./
-LLVMFLAGS = $(shell $(LLVM_CONFIG) --cxxflags --ldflags --system-libs --libs all)
 
-# Target name (temporary build artifact)
-TEMP_TARGET = _tasia_build_temp
+# Handle LLVM flags differently on Windows
+ifeq ($(OS),Windows)
+    # Manually specify LLVM libraries for Windows
+    LLVMFLAGS = -L$(LLVM_PATH)/lib -lLLVMCore -lLLVMSupport -lLLVMX86CodeGen
+else
+    LLVMFLAGS = $(shell $(LLVM_CONFIG) --cxxflags --ldflags --system-libs --libs all)
+endif
 
+# Target name
+TEMP_TARGET = _tasia_build_temp$(EXE_EXT)
+FINAL_TARGET = tasia$(EXE_EXT)
+
+# Rules
 .PHONY: all clean install uninstall
 
-# Default target just shows help
 all:
-	@echo "To install the Tasia compiler system-wide, run:"
+	@echo "To install the Tasia compiler, run:"
 	@echo "    make install"
 	@echo ""
 	@echo "To remove the Tasia compiler, run:"
 	@echo "    make uninstall"
 
-# Build and immediately install
 install: build_temp
 	@echo "Installing to $(INSTALL_DIR)..."
-	@sudo cp $(TEMP_TARGET) $(INSTALL_DIR)/tasia
-	@sudo chmod 755 $(INSTALL_DIR)/tasia
-	@rm -f $(TEMP_TARGET)
-	@echo "Installation complete. You can now use 'tasia' directly from any directory."
+ifeq ($(OS),Windows)
+	@mkdir -p "$(INSTALL_DIR)" 2>NUL || echo Directory exists
+	@copy /Y "$(TEMP_TARGET)" "$(INSTALL_DIR)\$(FINAL_TARGET)"
+else
+	@$(SUDO) mkdir -p "$(INSTALL_DIR)"
+	@$(SUDO) cp $(TEMP_TARGET) $(INSTALL_DIR)/$(FINAL_TARGET)
+	@$(SUDO) chmod 755 $(INSTALL_DIR)/$(FINAL_TARGET)
+endif
+	@rm -f $(TEMP_TARGET) 2>NUL || del $(TEMP_TARGET) 2>NUL
+	@echo "Installation complete. You can now use 'tasia' directly."
 
-# Temporary build target (not intended to be used directly)
 build_temp:
 	@echo "Building compiler..."
 	$(CC) $(CXXFLAGS) $(INCLUDES) $(LLVMFLAGS) $(SOURCES) -o $(TEMP_TARGET)
 
 uninstall:
 	@echo "Removing from $(INSTALL_DIR)..."
-	@sudo rm -f $(INSTALL_DIR)/tasia
+ifeq ($(OS),Windows)
+	@del "$(INSTALL_DIR)\$(FINAL_TARGET)" 2>NUL || echo Already removed
+else
+	@$(SUDO) rm -f $(INSTALL_DIR)/$(FINAL_TARGET)
+endif
 	@echo "Uninstallation complete."
 
 clean:
 	@echo "Cleaning..."
-	@rm -f $(TEMP_TARGET)
+	@rm -f $(TEMP_TARGET) 2>NUL || del $(TEMP_TARGET) 2>NUL
 	@echo "Clean complete."
