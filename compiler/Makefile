@@ -100,6 +100,7 @@ endif
 
 build_temp:
 	@echo "Building compiler..."
+	@echo "Command: $(CC) $(CXXFLAGS) $(INCLUDES) $(LLVMFLAGS) $(SOURCES) -o $(TEMP_TARGET)"
 	$(CC) $(CXXFLAGS) $(INCLUDES) $(LLVMFLAGS) $(SOURCES) -o $(TEMP_TARGET)
 
 uninstall:

@@ -60,6 +60,103 @@ def install_dependencies():
         
     package_manager, command_template = get_package_manager()
     
+    if system == "Windows":
+        # Check admin privileges
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            print("Error: Administrator privileges required for Windows installation")
+            sys.exit(1)
+            
+        # Check if LLVM is already installed
+        llvm_installed = False
+        try:
+            result = subprocess.run(["where", "clang++.exe"], capture_output=True, text=True)
+            if result.returncode == 0:
+                print(f"Found existing LLVM installation at: {os.path.dirname(os.path.dirname(result.stdout.strip()))}")
+                llvm_installed = True
+        except:
+            pass
+            
+        if not llvm_installed:
+            print("LLVM not found. Installing LLVM...")
+            
+            # First try with Chocolatey
+            try:
+                # Check if Chocolatey is installed
+                choco_installed = subprocess.run(["where", "choco"], capture_output=True, text=True).returncode == 0
+                
+                if not choco_installed:
+                    print("Installing Chocolatey...")
+                    install_choco = '''powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"'''
+                    subprocess.run(install_choco, shell=True, check=True)
+                
+                # Install LLVM via Chocolatey
+                print("Installing LLVM via Chocolatey...")
+                subprocess.run("choco install llvm -y --force", shell=True, check=True)
+                
+            except subprocess.CalledProcessError:
+                # If Chocolatey fails, download and install LLVM directly
+                print("Chocolatey installation failed. Downloading LLVM installer directly...")
+                
+                # Create a temporary directory for the download
+                temp_dir = os.path.join(os.environ.get("TEMP", "C:\\Windows\\Temp"), "llvm_install")
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                # Define the download URL for LLVM (adjust version if needed)
+                llvm_url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.0.0/LLVM-19.0.0-win64.exe"
+                installer_path = os.path.join(temp_dir, "llvm_installer.exe")
+                
+                # Download the installer
+                print(f"Downloading LLVM from {llvm_url}...")
+                try:
+                    urllib.request.urlretrieve(llvm_url, installer_path)
+                except:
+                    print("Failed to download LLVM installer. Please download and install LLVM manually.")
+                    print("1. Download LLVM from: https://github.com/llvm/llvm-project/releases/")
+                    print("2. Install to the default location (C:\\Program Files\\LLVM)")
+                    print("3. Make sure to add LLVM to your system PATH")
+                    sys.exit(1)
+                
+                # Run the installer with silent options
+                print("Running LLVM installer...")
+                try:
+                    subprocess.run([installer_path, "/S", "/D=C:\\Program Files\\LLVM"], check=True)
+                    print("LLVM installed successfully!")
+                except:
+                    print("Failed to install LLVM. Please install manually.")
+                    sys.exit(1)
+                    
+                # Clean up the temporary directory
+                try:
+                    shutil.rmtree(temp_dir)
+                except:
+                    pass
+        
+        # Verify LLVM installation
+        try:
+            # We need to refresh the PATH environment variable
+            os.environ["PATH"] = os.environ["PATH"] + ";C:\\Program Files\\LLVM\\bin"
+            
+            # Check if clang++ is now available
+            result = subprocess.run(["clang++", "--version"], capture_output=True, text=True)
+            if result.returncode == 0:
+                print("LLVM successfully installed and configured!")
+            else:
+                print("Warning: LLVM installation may not be correctly configured.")
+        except:
+            print("Warning: Could not verify LLVM installation.")
+            
+        # Install make if not already installed
+        try:
+            subprocess.run(["where", "make.exe"], capture_output=True, check=True)
+            print("Make is already installed.")
+        except:
+            print("Installing Make...")
+            try:
+                subprocess.run("choco install make -y", shell=True, check=True)
+            except:
+                print("Failed to install Make. Please install manually.")
+                sys.exit(1)
+    
     packages = ["llvm", "make"]
     if system == "Linux":
         # Ubuntu needs special handling for newer LLVM versions
