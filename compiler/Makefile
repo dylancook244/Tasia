@@ -11,15 +11,17 @@ ifeq ($(OS),Darwin)
 else ifeq ($(OS),Linux)
     # Linux
     ifeq ($(shell lsb_release -is 2>/dev/null),Ubuntu)
-        # Ubuntu - look for versioned LLVM tools
-        LLVM_PATH ?= /usr
-        CC = $(LLVM_PATH)/bin/clang++-19
-        LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config-19
+    # Ubuntu - look for versioned LLVM tools
+    LLVM_PATH ?= /usr
+    # Check if version 19 exists
+    ifneq ($(shell test -f /usr/bin/clang++-19 && echo yes),)
+        CC = /usr/bin/clang++-19
+        LLVM_CONFIG = /usr/bin/llvm-config-19
+    # Otherwise, use the default version
     else
-        # Other Linux distributions
-        LLVM_PATH ?= /usr
         CC = $(LLVM_PATH)/bin/clang++
         LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config
+    endif
     endif
     INSTALL_DIR = /usr/bin
     SUDO = sudo

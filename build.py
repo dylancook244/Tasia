@@ -63,12 +63,22 @@ def install_dependencies():
     packages = ["llvm", "make"]
     if system == "Linux":
         # Ubuntu needs special handling for newer LLVM versions
+        # For Ubuntu, install LLVM 19 specifically
         if os.path.exists("/etc/lsb-release") and "Ubuntu" in open("/etc/lsb-release").read():
-            # Install LLVM repository script and run it for version 19
+            # Remove any existing LLVM installation to prevent conflicts
+            subprocess.run("sudo apt-get remove -y llvm llvm-dev clang", shell=True)
+            
+            # Download and run the LLVM installation script for version 19
             subprocess.run("wget https://apt.llvm.org/llvm.sh", shell=True, check=True)
             subprocess.run("chmod +x llvm.sh", shell=True, check=True)
             subprocess.run("sudo ./llvm.sh 19", shell=True, check=True)
-            # No need to explicitly install LLVM packages as the script does that
+            
+            # Force create symbolic links to ensure version 19 is used
+            subprocess.run("sudo ln -sf /usr/bin/clang-19 /usr/bin/clang", shell=True)
+            subprocess.run("sudo ln -sf /usr/bin/clang++-19 /usr/bin/clang++", shell=True)
+            subprocess.run("sudo ln -sf /usr/bin/llvm-config-19 /usr/bin/llvm-config", shell=True)
+            
+            # Only install make since LLVM is handled separately
             packages = ["make"]
         # Fedora/RHEL/CentOS
         elif os.path.exists("/etc/fedora-release") or os.path.exists("/etc/redhat-release"):
