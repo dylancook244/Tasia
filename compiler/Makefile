@@ -15,17 +15,17 @@ else ifeq ($(OS),Linux)
     SUDO = sudo
 else
     # Windows
-    LLVM_PATH ?= C:/Program Files/LLVM
-    INSTALL_DIR = C:/Program Files/tasia/bin
+    LLVM_PATH ?= "C:/Program Files/LLVM"
+    INSTALL_DIR = "C:/Program Files/tasia/bin"
     SUDO =
-    # Use forward slashes even on Windows
-    LLVM_PATH := $(subst \,/,$(LLVM_PATH))
+    # Remove extra quotes after substitution for Windows commands
+    LLVM_PATH_CLEAN := $(subst ",,$(subst \,/,$(LLVM_PATH)))
 endif
 
 # Dynamic compiler detection
 ifeq ($(OS),Windows)
-    CC = $(LLVM_PATH)/bin/clang++.exe
-    LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config.exe
+    CC = "$(LLVM_PATH_CLEAN)/bin/clang++.exe"
+    LLVM_CONFIG = "$(LLVM_PATH_CLEAN)/bin/llvm-config.exe"
     EXE_EXT = .exe
 else
     CC = $(LLVM_PATH)/bin/clang++
@@ -46,12 +46,17 @@ ifeq ($(OS),Darwin)
     CXXFLAGS += -stdlib=libc++
 endif
 
-INCLUDES = -I$(LLVM_PATH)/include -I./
+# Include paths with proper quoting
+ifeq ($(OS),Windows)
+    INCLUDES = -I"$(LLVM_PATH_CLEAN)/include" -I./
+else
+    INCLUDES = -I$(LLVM_PATH)/include -I./
+endif
 
 # Handle LLVM flags differently on Windows
 ifeq ($(OS),Windows)
     # Manually specify LLVM libraries for Windows
-    LLVMFLAGS = -L$(LLVM_PATH)/lib -lLLVMCore -lLLVMSupport -lLLVMX86CodeGen
+    LLVMFLAGS = -L"$(LLVM_PATH_CLEAN)/lib" -lLLVMCore -lLLVMSupport -lLLVMX86CodeGen
 else
     LLVMFLAGS = $(shell $(LLVM_CONFIG) --cxxflags --ldflags --system-libs --libs all)
 endif
@@ -73,7 +78,7 @@ all:
 install: build_temp
 	@echo "Installing to $(INSTALL_DIR)..."
 ifeq ($(OS),Windows)
-	@mkdir -p "$(INSTALL_DIR)" 2>NUL || echo Directory exists
+	@mkdir "$(INSTALL_DIR)" 2>NUL || echo Directory exists
 	@copy /Y "$(TEMP_TARGET)" "$(INSTALL_DIR)\$(FINAL_TARGET)"
 else
 	@$(SUDO) mkdir -p "$(INSTALL_DIR)"
