@@ -3,6 +3,8 @@ import platform
 import sys
 import subprocess
 import ctypes
+import urllib.request
+import shutil
 
 def get_package_manager():
     system = platform.system()
