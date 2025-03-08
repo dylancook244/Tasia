@@ -11,26 +11,30 @@ ifeq ($(OS),Darwin)
 else ifeq ($(OS),Linux)
     # Linux
     ifeq ($(shell lsb_release -is 2>/dev/null),Ubuntu)
-    # Ubuntu - try to find LLVM 19 tools in multiple locations
-    LLVM_CONFIG_19 := $(shell which llvm-config-19 2>/dev/null || echo "not-found")
-    
-    ifeq ($(LLVM_CONFIG_19),not-found)
-        # Try typical install locations
-        ifneq ($(wildcard /usr/lib/llvm-19/bin/llvm-config),)
-            LLVM_PATH ?= /usr/lib/llvm-19
-        else ifneq ($(wildcard /usr/bin/llvm-config-19),)
-            LLVM_PATH ?= /usr
-            CC = $(LLVM_PATH)/bin/clang++-19
-            LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config-19
+        # Ubuntu - try to find LLVM 19 tools in multiple locations
+        LLVM_CONFIG_19 := $(shell which llvm-config-19 2>/dev/null || echo "not-found")
+        
+        ifeq ($(LLVM_CONFIG_19),not-found)
+            # Try typical install locations
+            ifneq ($(wildcard /usr/lib/llvm-19/bin/llvm-config),)
+                LLVM_PATH ?= /usr/lib/llvm-19
+            else ifneq ($(wildcard /usr/bin/llvm-config-19),)
+                LLVM_PATH ?= /usr
+                CC = $(LLVM_PATH)/bin/clang++-19
+                LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config-19
+            else
+                # Fallback to standard paths (may not be version 19)
+                LLVM_PATH ?= /usr
+            endif
         else
-            # Fallback to standard paths (may not be version 19)
-            LLVM_PATH ?= /usr
+            # Found llvm-config-19, use its directory as LLVM_PATH
+            LLVM_PATH ?= $(dir $(shell dirname $(LLVM_CONFIG_19)))
+            CC = $(LLVM_PATH)/bin/clang++-19
+            LLVM_CONFIG = $(LLVM_CONFIG_19)
         endif
     else
-        # Found llvm-config-19, use its directory as LLVM_PATH
-        LLVM_PATH ?= $(dir $(shell dirname $(LLVM_CONFIG_19)))
-        CC = $(LLVM_PATH)/bin/clang++-19
-        LLVM_CONFIG = $(LLVM_CONFIG_19)
+        # Other Linux distributions
+        LLVM_PATH ?= /usr
     endif
     INSTALL_DIR = /usr/bin
     SUDO = sudo
