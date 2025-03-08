@@ -62,7 +62,24 @@ def install_dependencies():
     
     packages = ["llvm", "make"]
     if system == "Linux":
-        packages.append("llvm-dev")
+        # Fedora/RHEL/CentOS
+        if os.path.exists("/etc/fedora-release") or os.path.exists("/etc/redhat-release"):
+            packages.extend(["llvm-devel", "clang-devel"])
+        # Arch Linux
+        elif os.path.exists("/etc/arch-release"):
+            packages.extend(["clang"])
+        # Debian/Ubuntu
+        elif os.path.exists("/etc/debian_version"):
+            packages.extend(["llvm-dev", "clang"])
+        # openSUSE
+        elif os.path.exists("/etc/SuSE-release") or os.path.exists("/etc/opensuse-release"):
+            packages.extend(["llvm-devel", "clang-devel"])
+        # Gentoo
+        elif os.path.exists("/etc/gentoo-release"):
+            packages = ["sys-devel/llvm", "sys-devel/make", "sys-devel/clang"]
+        # Default fallback
+        else:
+            packages.extend(["llvm-dev", "clang"])
     
     for package in packages:
         print(f"Installing {package}...")
