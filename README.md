@@ -11,15 +11,17 @@ Currently still in development, not all features added yet.
 - Procedural programming with lightweight OOP
 - LLVM-powered optimized compilation
 
-### Installation -- Make sure you have Python3 or Some Python Interpreter
+### Installation -- Make sure you have Python
 
 Windows: 
 ```bash
-git clone https://github.com/dylancook244/tasia.git; cd tasia; python build.py; cd ..; if (Test-Path "C:\Program Files\tasia\bin\tasia.exe") { Remove-Item -Recurse -Force tasia; Write-Host "Tasia installed and repo cleaned." } else { Write-Host "WARNING: Installation incomplete. Repo kept." }```
+git clone https://github.com/dylancook244/tasia.git; cd tasia; python build.py; cd ..; if (Test-Path "C:\Program Files\tasia\bin\tasia.exe") { Remove-Item -Recurse -Force tasia; Write-Host "Tasia installed and repo cleaned." } else { Write-Host "WARNING: Installation incomplete. Repo kept." }
+```
 
 Mac/Linux: 
 ```bash
-git clone https://github.com/dylancook244/tasia.git && cd tasia && python build.py && cd .. && { command -v tasia >/dev/null 2>&1 && rm -rf tasia && echo "Tasia installed and repo cleaned." || echo "WARNING: Installation incomplete. Repo kept."; }```
+git clone https://github.com/dylancook244/tasia.git && cd tasia && python build.py && cd .. && { command -v tasia >/dev/null 2>&1 && rm -rf tasia && echo "Tasia installed and repo cleaned." || echo "WARNING: Installation incomplete. Repo kept."; }
+```
 ## Usage
 
 ```bash
