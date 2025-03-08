@@ -1,0 +1,112 @@
+=== TASIA COMPILER DEBUG OUTPUT ===
+
+Source file: mathAdvanced.sia
+Output file: mathAdvanced.o
+
+
+=== SOURCE CODE ===
+
+   1 | # example.sia - A more complete Tasia example
+   2 | # This shows both functions and blocks
+   3 | 
+   4 | # Helper function for calculation
+   5 | func square(x) {
+   6 |   2 + 2
+   7 |   x * x
+   8 | }
+   9 | 
+  10 | func main() {
+  11 |   # This is a block with multiple expressions
+  12 |   square(4)
+  13 |   123 + 93
+  14 |   42 * square(2)
+  15 | }
+
+    
+=== TOKEN DUMP ===
+
+FUNC
+IDENTIFIER(square)
+CHAR('(')
+IDENTIFIER(x)
+CHAR(')')
+CHAR('{')
+NUMBER(2.000000)
+CHAR('+')
+NUMBER(2.000000)
+IDENTIFIER(x)
+CHAR('*')
+IDENTIFIER(x)
+CHAR('}')
+FUNC
+IDENTIFIER(main)
+CHAR('(')
+CHAR(')')
+CHAR('{')
+IDENTIFIER(square)
+CHAR('(')
+NUMBER(4.000000)
+CHAR(')')
+NUMBER(123.000000)
+CHAR('+')
+NUMBER(93.000000)
+NUMBER(42.000000)
+CHAR('*')
+IDENTIFIER(square)
+CHAR('(')
+NUMBER(2.000000)
+CHAR(')')
+CHAR('}')
+EOF
+
+
+=== AST DUMP ===
+
+Program(mathAdvanced.sia,
+  Functions: [Function(Proto(square, [x]), BlockExpr([BinExpr(add, NumberExpr(2), NumberExpr(2)), BinExpr(mul, VarExpr(x), VarExpr(x))])),
+    Function(Proto(TASIA_ENTRY_FUNCTION, []), BlockExpr([CallExpr(square, [NumberExpr(4)]), BinExpr(add, NumberExpr(123), NumberExpr(93)), BinExpr(mul, NumberExpr(42), CallExpr(square, [NumberExpr(2)]))]))],
+  Statements: []
+)
+
+
+=== LLVM IR DUMP ===
+
+; ModuleID = 'mathAdvanced.sia'
+source_filename = "mathAdvanced.sia"
+
+define double @square(double %x) {
+entry:
+  %multmp = fmul double %x, %x
+  ret double %multmp
+}
+
+define double @TASIA_ENTRY_FUNCTION() {
+entry:
+  %calltmp = call double @square(double 4.000000e+00)
+  %calltmp1 = call double @square(double 2.000000e+00)
+  %multmp = fmul double 4.200000e+01, %calltmp1
+  ret double %multmp
+}
+
+
+=== OBJECT CODE DUMP ===
+
+mathAdvanced.o:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000000000 <ltmp0>:
+       0: 1e600800     	fmul	d0, d0, d0
+       4: d65f03c0     	ret
+
+0000000000000008 <_TASIA_ENTRY_FUNCTION>:
+       8: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+       c: 1e621000     	fmov	d0, #4.00000000
+      10: 94000000     	bl	0x10 <_TASIA_ENTRY_FUNCTION+0x8>
+      14: 1e601000     	fmov	d0, #2.00000000
+      18: 94000000     	bl	0x18 <_TASIA_ENTRY_FUNCTION+0x10>
+      1c: d2e808a8     	mov	x8, #0x4045000000000000 ; =4631107791820423168
+      20: 9e670101     	fmov	d1, x8
+      24: 1e610800     	fmul	d0, d0, d1
+      28: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+      2c: d65f03c0     	ret

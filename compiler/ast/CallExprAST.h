@@ -12,12 +12,12 @@ private:
     std::vector<std::unique_ptr<ExprAST>> args;
     
 public:
-    CallExprAST(const std::string& callee,
+    CallExprAST(const std::string &callee,
                std::vector<std::unique_ptr<ExprAST>> args)
         : callee(callee), args(std::move(args)) {}
     
     const std::string& getCallee() const { return callee; }
-    const std::vector<std::unique_ptr<ExprAST>>& getArgs() const { return args; }
+    const std::vector<std::unique_ptr<ExprAST>> &getArgs() const { return args; }
     
     virtual std::string toString() const override {
         std::string result = "CallExpr(" + callee + ", [";

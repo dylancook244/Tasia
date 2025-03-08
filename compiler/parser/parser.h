@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <iostream>
 #include "lexer/lexer.h"
 #include "lexer/token.h"
 #include "ast/ExprAST.h"
@@ -14,6 +15,7 @@
 #include "ast/CallExprAST.h"
 #include "ast/PrototypeAST.h"
 #include "ast/FunctionAST.h"
+#include "ast/BlockExprAST.h"
 #include "ast/StmtAST.h"
 #include "ast/Program.h"
 
@@ -46,6 +48,7 @@ private:
     std::unique_ptr<ExprAST> parsePrimary();
     std::unique_ptr<ExprAST> parseBinOpRHS(int exprPrec, std::unique_ptr<ExprAST> LHS);
     std::unique_ptr<ExprAST> parseExpression();
+    std::unique_ptr<ExprAST> parseBlockExpr();
     std::unique_ptr<PrototypeAST> parsePrototype();
     std::unique_ptr<FunctionAST> parseDefinition();
     std::unique_ptr<PrototypeAST> parseExtern();
@@ -63,7 +66,7 @@ public:
     std::unique_ptr<Program> parseFile();
     
     // Access parsing results
-    const std::vector<ParseError>& getErrors() const { return errors; }
+    const std::vector<ParseError> &getErrors() const { return errors; }
     bool hasErrors() const { return !errors.empty(); }
 };
 

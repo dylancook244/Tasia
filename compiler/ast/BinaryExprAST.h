@@ -16,8 +16,8 @@ public:
         : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
     
     char getOperator() const { return op; }
-    ExprAST* getLHS() const { return lhs.get(); }
-    ExprAST* getRHS() const { return rhs.get(); }
+    ExprAST *getLHS() const { return lhs.get(); }
+    ExprAST *getRHS() const { return rhs.get(); }
     
     virtual std::string toString() const override {
         std::string opStr;

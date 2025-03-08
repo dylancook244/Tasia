@@ -19,6 +19,7 @@
 #include "ast/CallExprAST.h"
 #include "ast/PrototypeAST.h"
 #include "ast/FunctionAST.h"
+#include "ast/BlockExprAST.h"
 #include "ast/StmtAST.h"
 #include "ast/Program.h"
 
@@ -53,6 +54,7 @@ public:
     llvm::Value* generateCode(VariableExprAST* expr);
     llvm::Value* generateCode(BinaryExprAST* expr);
     llvm::Value* generateCode(CallExprAST* expr);
+    llvm::Value* generateCode(BlockExprAST* expr);
     llvm::Value* generateCode(StmtAST* stmt);
     llvm::Function* generateCode(PrototypeAST* proto);
     llvm::Function* generateCode(FunctionAST* func);

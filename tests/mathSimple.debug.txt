@@ -1,0 +1,92 @@
+=== TASIA COMPILER DEBUG OUTPUT ===
+
+Source file: mathSimple.sia
+Output file: mathSimple.o
+
+
+=== SOURCE CODE ===
+
+   1 | # Current style without blocks
+   2 | func square(x) {
+   3 |   x * x
+   4 | }
+   5 | 
+   6 | func main() {
+   7 |   42 * square(2)
+   8 | }
+
+
+=== TOKEN DUMP ===
+
+FUNC
+IDENTIFIER(square)
+CHAR('(')
+IDENTIFIER(x)
+CHAR(')')
+CHAR('{')
+IDENTIFIER(x)
+CHAR('*')
+IDENTIFIER(x)
+CHAR('}')
+FUNC
+IDENTIFIER(main)
+CHAR('(')
+CHAR(')')
+CHAR('{')
+NUMBER(42.000000)
+CHAR('*')
+IDENTIFIER(square)
+CHAR('(')
+NUMBER(2.000000)
+CHAR(')')
+CHAR('}')
+EOF
+
+
+=== AST DUMP ===
+
+Program(mathSimple.sia,
+  Functions: [Function(Proto(square, [x]), BlockExpr([BinExpr(mul, VarExpr(x), VarExpr(x))])),
+    Function(Proto(TASIA_ENTRY_FUNCTION, []), BlockExpr([BinExpr(mul, NumberExpr(42), CallExpr(square, [NumberExpr(2)]))]))],
+  Statements: []
+)
+
+
+=== LLVM IR DUMP ===
+
+; ModuleID = 'mathSimple.sia'
+source_filename = "mathSimple.sia"
+
+define double @square(double %x) {
+entry:
+  %multmp = fmul double %x, %x
+  ret double %multmp
+}
+
+define double @TASIA_ENTRY_FUNCTION() {
+entry:
+  %calltmp = call double @square(double 2.000000e+00)
+  %multmp = fmul double 4.200000e+01, %calltmp
+  ret double %multmp
+}
+
+
+=== OBJECT CODE DUMP ===
+
+mathSimple.o:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000000000 <ltmp0>:
+       0: 1e600800     	fmul	d0, d0, d0
+       4: d65f03c0     	ret
+
+0000000000000008 <_TASIA_ENTRY_FUNCTION>:
+       8: a9bf7bfd     	stp	x29, x30, [sp, #-0x10]!
+       c: 1e601000     	fmov	d0, #2.00000000
+      10: 94000000     	bl	0x10 <_TASIA_ENTRY_FUNCTION+0x8>
+      14: d2e808a8     	mov	x8, #0x4045000000000000 ; =4631107791820423168
+      18: 9e670101     	fmov	d1, x8
+      1c: 1e610800     	fmul	d0, d0, d1
+      20: a8c17bfd     	ldp	x29, x30, [sp], #0x10
+      24: d65f03c0     	ret
