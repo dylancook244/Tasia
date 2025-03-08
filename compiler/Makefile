@@ -9,9 +9,18 @@ ifeq ($(OS),Darwin)
     INSTALL_DIR = /usr/local/bin
     SUDO = sudo
 else ifeq ($(OS),Linux)
-    # Linux - try to find LLVM using which command
-    LLVM_CONFIG_PATH := $(shell which llvm-config 2>/dev/null)
-    LLVM_PATH := $(if $(LLVM_CONFIG_PATH),$(dir $(shell dirname $(LLVM_CONFIG_PATH))),/usr/lib/llvm-19)
+    # Linux
+    ifeq ($(shell lsb_release -is 2>/dev/null),Ubuntu)
+        # Ubuntu - look for versioned LLVM tools
+        LLVM_PATH ?= /usr
+        CC = $(LLVM_PATH)/bin/clang++-19
+        LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config-19
+    else
+        # Other Linux distributions
+        LLVM_PATH ?= /usr
+        CC = $(LLVM_PATH)/bin/clang++
+        LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config
+    endif
     INSTALL_DIR = /usr/bin
     SUDO = sudo
 else
