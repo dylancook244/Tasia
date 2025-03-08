@@ -13,14 +13,15 @@ Currently still in development, not all features added yet.
 
 ### Installation -- Make sure you have Python3 or Some Python Interpreter
 
+Windows: 
 ```bash
-git clone https://github.com/dylancook244/tasia.git 
-
-cd tasia 
-
-python build.py
+git clone https://github.com/dylancook244/tasia.git; cd tasia; python build.py
 ```
 
+Mac/Linux: 
+```bash
+git clone https://github.com/dylancook244/tasia.git && cd tasia && python build.py```
+```
 ## Usage
 
 ```bash
