@@ -1,7 +1,3 @@
-pipx uninstall tasia && pipx install . && tasia help
-
-
-
 # Tasia Language
 
 A lightweight, ergonomic programming language that combines Rust's memory safety with Go's simplicity. 
@@ -15,13 +11,17 @@ Currently still in development, not all features added yet.
 - Procedural programming with lightweight OOP
 - LLVM-powered optimized compilation
 
-### Installation -- Make sure you have Python
+### Installation
 
-Download the pre-built binary for your platform:
+**Mac/Linux**
+```bash
+curl -sSf https://install.tasia-lang.org/install.sh | sh
+```
 
-- [Windows](https://github.com/dylancook244/tasia/releases/latest/download/tasia-Windows.exe)
-- [macOS](https://github.com/dylancook244/tasia/releases/latest/download/tasia-macOS)
-- [Linux](https://github.com/dylancook244/tasia/releases/latest/download/tasia-Linux)
+**Windows**
+```bash
+iwr -useb https://install.tasia-lang.org/install.ps1 | iex
+```
 
 ## Usage
 
