@@ -2,4 +2,5 @@
 _tasia_build_temp.dSYM
 .DS_Store
 NUL
-__pycache__
+toolchain/__pycache__
+target
