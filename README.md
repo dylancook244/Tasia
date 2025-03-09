@@ -15,12 +15,12 @@ Currently still in development, not all features added yet.
 
 **Mac/Linux**
 ```bash
-curl -sSf https://install.tasia-lang.org/install.sh | sh
+curl -sSf https://raw.githubusercontent.com/dylancook244/tasia/main/scripts/install.sh | sh
 ```
 
 **Windows**
 ```bash
-iwr -useb https://install.tasia-lang.org/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/dylancook244/tasia/main/scripts/install.ps1 | iex
 ```
 
 ## Usage
