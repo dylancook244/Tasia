@@ -1,0 +1,57 @@
+name: Build Tasia Executables
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: Linux
+            extension: ""
+          - os: macos-latest
+            platform: macOS 
+            extension: ""
+          - os: windows-latest
+            platform: Windows
+            extension: ".exe"
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Get full history for version determination
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pyinstaller
+    
+    - name: Build executable
+      run: |
+        pyinstaller --onefile --clean --name=tasia tasia.py
+        cd dist
+        mv tasia${{ matrix.extension }} tasia-${{ matrix.platform }}${{ matrix.extension }}
+        cd ..
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: tasia-${{ matrix.platform }}
+        path: dist/tasia-${{ matrix.platform }}${{ matrix.extension }}
+    
+    - name: Upload to release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/tasia-${{ matrix.platform }}${{ matrix.extension }}

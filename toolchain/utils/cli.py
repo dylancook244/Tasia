@@ -1,5 +1,5 @@
 import sys
-from utils.project import create_project_scaffolding
+from toolchain.utils.project import create_project_scaffolding
 # Import other utilities as needed
 
 def cli_commands():

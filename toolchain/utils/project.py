@@ -10,7 +10,6 @@ def start_project_scaffolding():
 
         create_project_scaffolding(proj_name)
 
-
 def create_project_scaffolding(proj_name):
 
     # create our project directories
