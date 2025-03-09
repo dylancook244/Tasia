@@ -1,19 +1,20 @@
 #!/bin/bash
 
-# Tasia Installation Script for macOS and Linux
-echo "Installing Tasia Programming Language..."
+# Detect OS
+OS="$(uname -s)"
+ARCH="$(uname -m)"
 
-# Determine OS for download URL
-if [[ "$OSTYPE" == "darwin"* ]]; then
+# Set download URL based on platform
+if [[ "$OS" == "Darwin" ]]; then
   PLATFORM="macOS"
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+elif [[ "$OS" == "Linux" ]]; then
   PLATFORM="Linux"
 else
-  echo "Unsupported operating system: $OSTYPE"
+  echo "Unsupported operating system: $OS"
   exit 1
 fi
 
-echo "Detected $PLATFORM system"
+echo "Installing Tasia for $PLATFORM ($ARCH)..."
 
 # Create installation directory
 INSTALL_DIR="/usr/local/bin"
@@ -22,8 +23,7 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
   sudo mkdir -p "$INSTALL_DIR"
 fi
 
-# Download the appropriate Tasia executable
-echo "Downloading Tasia executable..."
+# Download the appropriate binary
 DOWNLOAD_URL="https://github.com/dylancook244/tasia/releases/latest/download/tasia-$PLATFORM"
 curl -L "$DOWNLOAD_URL" -o tasia
 
@@ -34,6 +34,7 @@ chmod +x tasia
 echo "Installing Tasia to $INSTALL_DIR..."
 sudo mv tasia "$INSTALL_DIR/"
 
+# Print success message and instructions
 echo "Tasia installed successfully!"
 echo "You can now use Tasia by running the 'tasia' command."
 echo "Try 'tasia help' to get started."

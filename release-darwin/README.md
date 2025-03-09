@@ -15,13 +15,17 @@ Currently still in development, not all features added yet.
 - Procedural programming with lightweight OOP
 - LLVM-powered optimized compilation
 
-### Installation -- Make sure you have Python
+### Installation
 
-Download the pre-built binary for your platform:
+**macOS/Linux:**
+```bash
+curl -sSf https://raw.githubusercontent.com/dylancook244/tasia/main/scripts/install.sh | sh
+```
 
-- [Windows](https://raw.githubusercontent.com/dylancook244/tasia/install/install.ps1)
-- [macOS](https://raw.githubusercontent.com/dylancook244/tasia/install/install.sh)
-- [Linux](https://raw.githubusercontent.com/dylancook244/tasia/install/install.sh)
+**Windows:**
+```bash
+iwr -useb https://raw.githubusercontent.com/dylancook244/tasia/main/scripts/install.ps1 | iex
+```
 
 ### Instructions after downloading:
 
