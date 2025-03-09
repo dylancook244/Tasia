@@ -24,7 +24,7 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
 fi
 
 # Download the appropriate binary
-DOWNLOAD_URL="https://github.com/dylancook244/tasia/releases/latest/download/tasia-$PLATFORM"
+DOWNLOAD_URL="https://github.com/dylancook244/tasia/releases/download/v0.0.0/tasia-$PLATFORM"
 curl -L "$DOWNLOAD_URL" -o tasia
 
 # Make it executable

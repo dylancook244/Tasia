@@ -10,7 +10,7 @@ if (-not (Test-Path $InstallDir)) {
 
 # Download Tasia executable
 Write-Host "Downloading Tasia executable..."
-$DownloadUrl = "https://github.com/dylancook244/tasia/releases/latest/download/tasia-Windows.exe"
+$DownloadUrl = "https://github.com/dylancook244/tasia/releases/download/v0.0.0/tasia-Windows.exe"
 $ExePath = "$InstallDir\tasia.exe"
 Invoke-WebRequest -Uri $DownloadUrl -OutFile $ExePath
 
