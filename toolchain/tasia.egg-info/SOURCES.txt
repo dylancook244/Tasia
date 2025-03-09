@@ -1,0 +1,10 @@
+setup.py
+tasia.py
+tasia.egg-info/PKG-INFO
+tasia.egg-info/SOURCES.txt
+tasia.egg-info/dependency_links.txt
+tasia.egg-info/entry_points.txt
+tasia.egg-info/top_level.txt
+utils/__init__.py
+utils/cli.py
+utils/project.py

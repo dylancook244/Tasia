@@ -6,8 +6,9 @@ import ctypes
 import urllib.request
 import shutil
 
-from toolchain import start_project_scaffolding
+from setuptools import setup, find_packages
 
+from toolchain import cli_commands
 
 def get_package_manager():
     system = platform.system()
@@ -169,5 +170,6 @@ def build():
     install_dependencies()
     build_tasia()
 
+
 if __name__ == "__main__":
-    start_project_scaffolding()
+    build_toolchain()

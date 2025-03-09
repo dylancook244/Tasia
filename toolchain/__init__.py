@@ -1,1 +1,1 @@
-from .project import start_project_scaffolding
+__version__ = "0.1.0"

@@ -1,0 +1,2 @@
+[console_scripts]
+tasia = tasia:main
