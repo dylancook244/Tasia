@@ -6,6 +6,9 @@ import ctypes
 import urllib.request
 import shutil
 
+from toolchain import start_project_scaffolding
+
+
 def get_package_manager():
     system = platform.system()
     
@@ -167,4 +170,4 @@ def build():
     build_tasia()
 
 if __name__ == "__main__":
-    build()
+    start_project_scaffolding()
