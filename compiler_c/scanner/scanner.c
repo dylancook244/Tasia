@@ -98,6 +98,8 @@ Token* getNextToken(Scanner* scanner) {
             keyword_type = CHAR;
         } else if (strcmp(buffer, "string") == 0) {
             keyword_type = STRING;
+        } else if (strcmp(buffer, "->") == 0) {
+            keyword_type = RETURN_VALUE;
         } else if (strcmp(buffer, "bool") == 0) {
             keyword_type = BOOL;
         } else if (strcmp(buffer, "true") == 0) { // bool literals true

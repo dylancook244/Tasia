@@ -42,6 +42,7 @@ typedef enum {
     FUNC,           // func
     MAIN,           // main (needed for func entrypoint)
     RETURN,         // return
+    RETURN_VALUE,   // ->
 
 } TokenType;
 

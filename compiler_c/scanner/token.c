@@ -53,6 +53,7 @@ const char* token_type_to_string(TokenType type) {
         case FUNC:         return "FUNC";
         case MAIN:         return "MAIN";
         case RETURN:       return "RETURN";
+        case RETURN_VALUE:       return "RETURN_VALUE";
 
         default:           return "UNKNOWN";
     }
