@@ -13,7 +13,7 @@ else ifeq ($(OS),Linux)
     SUDO = sudo
 else
     # Windows
-    INSTALL_DIR = "C:/Program Files/tasia/bin"
+    INSTALL_DIR = C:/Program Files/tasia/bin
     SUDO =
 endif
 
@@ -37,7 +37,8 @@ endif
 CFLAGS = -std=c11 -g -O3
 
 # Target name
-TEMP_TARGET = _tasia_build_temp$(EXE_EXT)
+TEMP_TARGET_NAME = _tasia_build_temp
+TEMP_TARGET = $(TEMP_TARGET_NAME)$(EXE_EXT)
 FINAL_TARGET = tasia$(EXE_EXT)
 
 # Rules
@@ -55,12 +56,16 @@ install: build_temp
 ifeq ($(OS),Windows)
 	@mkdir "$(INSTALL_DIR)" 2>NUL || echo Directory exists
 	@copy /Y "$(TEMP_TARGET)" "$(INSTALL_DIR)\$(FINAL_TARGET)"
+	@for /f "tokens=2,*" %%A in ('reg query "HKCU\Environment" /v PATH') do @setx PATH "$(INSTALL_DIR);%%B"
+	@del $(TEMP_TARGET) 2>NUL
+	@del $(TEMP_TARGET_NAME).ilk 2>NUL
+	@del $(TEMP_TARGET_NAME).pdb 2>NUL
 else
 	@$(SUDO) mkdir -p "$(INSTALL_DIR)"
 	@$(SUDO) cp $(TEMP_TARGET) $(INSTALL_DIR)/$(FINAL_TARGET)
 	@$(SUDO) chmod 755 $(INSTALL_DIR)/$(FINAL_TARGET)
+	@rm -f $(TEMP_TARGET) 2>NUL
 endif
-	@rm -f $(TEMP_TARGET) 2>NUL || del $(TEMP_TARGET) 2>NUL
 	@echo "Installation complete. You can now use 'tasia' directly."
 
 build_temp:
@@ -71,7 +76,7 @@ build_temp:
 uninstall:
 	@echo "Removing from $(INSTALL_DIR)..."
 ifeq ($(OS),Windows)
-	@del "$(INSTALL_DIR)\$(FINAL_TARGET)" 2>NUL || echo Already removed
+	del "$(INSTALL_DIR)\$(FINAL_TARGET)" 2>NUL || echo Already removed
 else
 	@$(SUDO) rm -f $(INSTALL_DIR)/$(FINAL_TARGET)
 endif

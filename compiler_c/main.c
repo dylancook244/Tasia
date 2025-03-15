@@ -1,5 +1,12 @@
 #include <stdio.h>
-#include <unistd.h>
+// #include <unistd.h>
+
+#ifdef _WIN32
+    #include <direct.h>
+    #define getcwd _getcwd // stupid MSFT "deprecation" warning
+#else
+    #include <unistd.h>
+#endif
 
 #include "parser/parser.h"
 #include "scanner/scanner.h"
@@ -59,7 +66,7 @@ int main(int argc, char** argv) {
     char* my_command = argv[1];
 
     char buffer [100];
-
+    
     if (argc >= 3) {
         char* filename = argv[2];
 
