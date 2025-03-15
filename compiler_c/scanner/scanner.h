@@ -1,6 +1,9 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
+#include <stdio.h>
+#include "token.h"
+
 // struct for our scanner
 typedef struct {
     FILE* file;
@@ -16,7 +19,10 @@ Scanner* init_scanner(const char* filepath);
 // advance characters
 char advance_char(Scanner* scanner);
 
+// get next token
+Token* getNextToken(Scanner* scanner);
+
 // Scanner is heap allocated
-void close_scanner(Scanner* scanner);
+void free_scanner(Scanner* scanner);
 
 #endif

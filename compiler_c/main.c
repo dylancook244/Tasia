@@ -12,9 +12,9 @@ void compile(char* filepath) {
 
     // void for now, prints output
     parseProgram(scanner);
-
+    
     // clean up
-    close_scanner(scanner);
+    free_scanner(scanner);
 
     // loose structuring as we go through
 

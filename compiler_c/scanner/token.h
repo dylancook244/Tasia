@@ -1,9 +1,10 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
-// token name in program along with user syntax
+#include <stdbool.h>
 
-enum Token {
+// token name in program along with user syntax
+typedef enum {
 
     ILLEGAL = 0,    // N/A
     END_OF_FILE,    // EOF
@@ -29,12 +30,31 @@ enum Token {
     RBRACE,         // }
     LPAREN,         // (
     RPAREN,         // )
-    LBRACE,         // [
-    RBRACE,         // ]
+    LBRACKET,         // [
+    RBRACKET,         // ]
 
     FUNC,           // func
     RETURN,         // return
 
-}
+} TokenType;
+
+typedef struct {
+    TokenType type;
+    char* raw_text;        // raw source text
+    int line;
+    int column;
+    
+    // holds the actual token value and info in case it's needed (ex: IDENT)
+    union {
+        int int_value;
+        float float_value;
+        char* string_value;
+        bool bool_value;
+    } value;
+} Token;
+
+void free_token(Token* token);
+
+const char* token_type_to_string(TokenType type);
 
 #endif
