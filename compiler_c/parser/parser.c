@@ -19,9 +19,10 @@ void parseProgram(Scanner* scanner) {
         advance_char(scanner);
     }
 
-    printf("\n\n=== TOKEN OUTPUT ===\n");
+    printf("\n\n=== TOKEN DUMP ===\n");
     
     // Reset the scanner again to tokenize from the beginning
+    // scanner already passed through in the SOURCE CODE output
     rewind(scanner->file);
     // Re-initialize scanner's current_char
     c = fgetc(scanner->file);
@@ -31,6 +32,9 @@ void parseProgram(Scanner* scanner) {
     
     // Get and process tokens
     Token* token = getNextToken(scanner);
+
+    // TODO: doesn't actually print end of file, just detects it
+    // make it actually print the EOF in debug
     while (token->type != END_OF_FILE) {
         // Process token
         printf("\nToken: %s, raw_text: '%s', Line: %d, Col: %d", 

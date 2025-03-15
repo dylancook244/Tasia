@@ -13,18 +13,24 @@ typedef enum {
 
     IDENT,          // user specified
 
+    INT,            // int
+    FLOAT,          // float
+    CHAR,           // char
+    STRING,         // string
+    BOOL,           // bool
+
+    INT_LITERAL,            // literal value
+    FLOAT_LITERAL,          // literal value
+    CHAR_LITERAL,           // literal value
+    STRING_LITERAL,         // literal value
+    BOOL_LITERAL,           // literal value
+
     ADD,            // +
-    SUBTRACT,       // - 
+    SUBTRACT,       // -
     MULTIPLY,       // *
     QUOTIENT,       // /
 
     ASSIGN,         // =
-
-    INT,            // int
-    FLOAT,          // float
-    STRING,         // string
-    CHAR,           // char
-    BOOL,           // bool
 
     LBRACE,         // {
     RBRACE,         // }
@@ -34,6 +40,7 @@ typedef enum {
     RBRACKET,         // ]
 
     FUNC,           // func
+    MAIN,           // main (needed for func entrypoint)
     RETURN,         // return
 
 } TokenType;

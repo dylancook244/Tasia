@@ -18,11 +18,23 @@ void free_token(Token* token) {
 const char* token_type_to_string(TokenType type) {
     switch (type) {
         case ILLEGAL:      return "ILLEGAL";
-        case END_OF_FILE:  return "EOF";
-        case END_OF_LINE:  return "EOL";
+        case END_OF_FILE:  return "END_OF_FILE";
+        case END_OF_LINE:  return "END_OF_LINE";
         case COMMENT:      return "COMMENT";
 
         case IDENT:        return "IDENT";
+
+        case INT:          return "INT";  
+        case FLOAT:        return "FLOAT"; 
+        case CHAR:         return "CHAR";
+        case STRING:       return "STRING";
+        case BOOL:         return "BOOL";
+
+        case INT_LITERAL:          return "INT_LITERAL";  
+        case FLOAT_LITERAL:        return "FLOAT_LITERAL"; 
+        case CHAR_LITERAL:         return "CHAR_LITERAL";
+        case STRING_LITERAL:       return "STRING_LITERAL";
+        case BOOL_LITERAL:         return "BOOL_LITERAL";
 
         case ADD:          return "ADD";
         case SUBTRACT:     return "SUBTRACT";
@@ -30,12 +42,6 @@ const char* token_type_to_string(TokenType type) {
         case QUOTIENT:     return "QUOTIENT";
 
         case ASSIGN:       return "ASSIGN";
-
-        case INT:          return "INT";  
-        case FLOAT:        return "FLOAT"; 
-        case STRING:       return "STRING";
-        case CHAR:         return "CHAR";
-        case BOOL:         return "BOOL";
 
         case LBRACE:       return "LBRACE";
         case RBRACE:       return "RBRACE";
@@ -45,8 +51,9 @@ const char* token_type_to_string(TokenType type) {
         case RBRACKET:     return "RBRACKET";
 
         case FUNC:         return "FUNC";
+        case MAIN:         return "MAIN";
         case RETURN:       return "RETURN";
-        
+
         default:           return "UNKNOWN";
     }
 }
