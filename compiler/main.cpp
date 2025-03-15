@@ -1,4 +1,3 @@
-// general C programs
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -8,12 +7,21 @@
 #include <filesystem>
 #include <cstdlib>
 
-// project files
+// Lexer and parser headers
 #include "lexer/lexer.h"
+#include "lexer/token.h"
 #include "parser/parser.h"
+
+// Symbol table and type system
+#include "types/SymbolTable.h"
+#include "types/Types.h"
+#include "types/TypeChecker.h"
+#include "types/BorrowChecker.h"
+
+// Code generation
 #include "codegen/CodeGenerator.h"
 
-// llvm files
+// LLVM includes
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/MC/TargetRegistry.h>
@@ -21,7 +29,7 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/IR/LegacyPassManager.h>
-#include <llvm/TargetParser/Host.h> // For getDefaultTargetTriple in LLVM 19
+#include <llvm/TargetParser/Host.h>
 
 std::string readFile(const std::string &path) {
     std::ifstream file(path);
@@ -36,7 +44,7 @@ std::string readFile(const std::string &path) {
 }
 
 bool compileFile(const std::string &filepath, const std::string &outputPath, const std::string &flagString) {
-    // 1. Setup debug output if needed
+    // Setup debug output if needed
     std::ofstream debugFile;
     if (flagString == "--compilerOutput") {
         std::string debugPath = filepath.substr(0, filepath.find_last_of('.')) + ".debug.txt";
@@ -50,7 +58,7 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
         }
     }
 
-    // 2. Read source
+    // Read source
     std::string source = readFile(filepath);
     if (source.empty()) {
         if (debugFile.is_open()) {
@@ -60,11 +68,10 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
         return false;
     }
 
-    // if we need debug output, put the source code in we read, just raw sia
+    // Output source code with line numbers in debug
     if (debugFile.is_open()) {
         debugFile << "=== SOURCE CODE ===\n\n";
         
-        // Add line numbers to make it easier to reference
         std::istringstream sourceStream(source);
         std::string line;
         int lineNum = 1;
@@ -75,57 +82,50 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
         }
         
         debugFile << "\n\n";
-        
-        // Reset the stream position for the lexer
-        sourceStream = std::istringstream(source);
     }
     
-    // 3. Tokenize and dump tokens if debugging
+    // Token dump for debugging
     if (debugFile.is_open()) {
         debugFile << "=== TOKEN DUMP ===\n\n";
         
-        // Create a copy of the lexer for token dumping
         Lexer tokenLexer(source);
         int token;
         do {
             token = tokenLexer.getNextToken();
-            // Convert token to string and write to debug file
             std::string tokenStr;
             switch (token) {
-                case tok_eof: tokenStr = "EOF"; break;
-                case tok_line_end: tokenStr = "LINE_END"; break;
-                case tok_func: tokenStr = "FUNC"; break;
-                case tok_extern: tokenStr = "EXTERN"; break;
-                case tok_identifier: 
-                    tokenStr = "IDENTIFIER(" + tokenLexer.getIdentifier() + ")"; 
+                case END_OF_FILE: tokenStr = "END_OF_FILE"; break;
+                case LINE_END: tokenStr = "LINE_END"; break;
+                case FUNC: tokenStr = "FUNC"; break;
+                case IDENT: 
+                    tokenStr = "IDENT(" + tokenLexer.getIdentifier() + ")"; 
                     break;
-                case tok_number: 
-                    tokenStr = "NUMBER(" + std::to_string(tokenLexer.getNumber()) + ")"; 
+                case INT: 
+                    tokenStr = "INT(" + std::to_string(tokenLexer.getNumber()) + ")"; 
                     break;
+                // Add new token types
+                case MUT: tokenStr = "MUT"; break;
+                case CONST: tokenStr = "CONST"; break;
+                case REF: tokenStr = "REF"; break;
                 default:
                     if (token >= 32 && token <= 126) {
-                        // Printable ASCII character
                         tokenStr = "CHAR('" + std::string(1, (char)token) + "')";
                     } else {
                         tokenStr = "UNKNOWN(" + std::to_string(token) + ")";
                     }
             }
             debugFile << tokenStr << "\n";
-        } while (token != tok_eof);
+        } while (token != END_OF_FILE);
         
         debugFile << "\n\n";
     }
     
-    // 4. Create a lexer for actual parsing (only once)
+    // Parse the file
     Lexer lexer(source);
-    
-    // 5. Create a parser with the lexer
     Parser parser(lexer, filepath);
-    
-    // 6. Parse the file ONCE
     auto program = parser.parseFile();
     
-    // 7. Check for parsing errors
+    // Check for parsing errors
     if (parser.hasErrors()) {
         for (const auto &error : parser.getErrors()) {
             std::cerr << error.location.filename << ":" 
@@ -143,16 +143,27 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
         return false;
     }
     
-    // 8. Dump AST if debugging
+    // Dump AST in debug mode
     if (debugFile.is_open() && program) {
         debugFile << "=== AST DUMP ===\n\n";
         debugFile << program->toString() << "\n\n\n";
     }
     
-    // 9. Create a code generator
-    CodeGenerator codeGen(filepath);
+    // Type checking and borrow checking
+    TypeChecker typeChecker;
+    if (!typeChecker.checkProgram(program.get())) {
+        for (const auto &error : typeChecker.getErrors()) {
+            std::cerr << error << std::endl;
+            if (debugFile.is_open()) {
+                debugFile << "TYPE/BORROW CHECK ERROR: " << error << "\n";
+            }
+        }
+        if (debugFile.is_open()) debugFile.close();
+        return false;
+    }
     
-    // 10. Generate LLVM IR
+    // Generate code
+    CodeGenerator codeGen(filepath);
     if (!codeGen.generateCode(program.get())) {
         for (const auto &error : codeGen.getErrors()) {
             std::cerr << error << std::endl;
@@ -164,7 +175,7 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
         return false;
     }
     
-    // 11. Dump LLVM IR if debugging
+    // Dump LLVM IR in debug mode
     if (debugFile.is_open()) {
         debugFile << "=== LLVM IR DUMP ===\n\n";
         std::string irStr;
@@ -173,14 +184,14 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
         debugFile << irStr << "\n\n";
     }
     
-    // 12. Initialize LLVM targets
+    // Initialize LLVM targets
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmParsers();
     llvm::InitializeAllAsmPrinters();
     
-    // 13. Get the target machine
+    // Get the target machine
     auto targetTriple = llvm::Triple::normalize(llvm::sys::getProcessTriple());
     std::string error;
     const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
@@ -197,15 +208,15 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
     auto CPU = "generic";
     auto features = "";
     llvm::TargetOptions opt;
-    std::optional<llvm::Reloc::Model> RM; // Using std::optional instead of llvm::Optional
+    std::optional<llvm::Reloc::Model> RM;
     auto targetMachine = target->createTargetMachine(targetTriple, CPU, features, opt, RM);
     
-    // 14. Configure the module for the target
+    // Configure module for target
     auto module = codeGen.getModule();
     module->setDataLayout(targetMachine->createDataLayout());
     module->setTargetTriple(targetTriple);
     
-    // 15. Output the compiled code
+    // Output compiled code
     std::error_code EC;
     llvm::raw_fd_ostream dest(outputPath, EC, llvm::sys::fs::OF_None);
     
@@ -218,7 +229,7 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
         return false;
     }
     
-    // 16. Generate object code
+    // Generate object code
     llvm::legacy::PassManager pass;
     
     if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGenFileType::ObjectFile)) {
@@ -233,7 +244,7 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
     pass.run(*module);
     dest.flush();
     
-    // 17. Dump object file disassembly if debugging
+    // Dump object code disassembly in debug mode
     if (debugFile.is_open()) {
         debugFile << "=== OBJECT CODE DUMP ===\n";
         std::string objdumpCmd = "objdump -d " + outputPath;
@@ -260,16 +271,11 @@ bool compileFile(const std::string &filepath, const std::string &outputPath, con
     return true;
 }
 
-// convoluted as fuck, but necessary. we make a runner.c file 
-// so our program actually links this file to the object file
-// created for our language. It also provides an entry point
-// for our program. 
+// Runner C content for linking
 const char* RUNNER_C_CONTENT = R"(
 #include <stdio.h>
 
 // The "main" function for our Tasia program
-// was renamed to TASIA_ENTRY_FUNCTION so it doesn't fuck up 
-// the C program that's ALSO looking for a main function.
 extern double TASIA_ENTRY_FUNCTION(void);
 
 int main(void) {
@@ -282,7 +288,6 @@ bool writeRunnerToTempFile(const std::string& tempPath) {
     std::ofstream runnerFile(tempPath);
     if (!runnerFile) {
         std::cerr << "Error: couldn't create temporary runner file" << std::endl;
-
         return false;
     }
 
@@ -292,13 +297,12 @@ bool writeRunnerToTempFile(const std::string& tempPath) {
 }
 
 int main(int argc, char** argv) {
-    // strict command check make sure args are there
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <command> <input_file.sia>" << std::endl;
         std::cerr << "Commands: " << std::endl;
         std::cerr << "  build - compile your tasia file into an executable program" << std::endl;
         std::cerr << "  run - compile and run your tasia file" << std::endl;
-        return 1;  // Added missing return statement
+        return 1;
     }
     
     std::string command = argv[1];
@@ -306,20 +310,17 @@ int main(int argc, char** argv) {
     bool flag = false;
     std::string flagString;
 
-    // check if there's a flag from the user
     if (argc > 3) {
         flag = true;
         flagString = argv[3];
     }
     
-    // verify you didn't fuck up the commands
     if (command != "build" && command != "run") {
         std::cerr << "Error: Unknown command '" << command << "'" << std::endl;
         std::cerr << "Valid commands: run, build" << std::endl;
         return 1;
     }
     
-    // get our file paths for our base file and object file
     std::string baseName = inputFile.substr(0, inputFile.find_last_of('.'));
     std::string objFile = baseName + ".o";
     std::string exeFile = baseName;
@@ -330,30 +331,27 @@ int main(int argc, char** argv) {
         return 1;
     }
     
-    // for both run and build an executable is created
-    // create a temporary runner.c file that we'll delete when we're done
-    // we need a runner.c so clang has something to link against
+    // Create temp runner.c file
     std::string tempRunnerPath = "temp_runner_" + std::to_string(std::time(nullptr)) + ".c";
     
     if (!writeRunnerToTempFile(tempRunnerPath)) {
         return 1;
     }
     
-    // build clang command to make executable
+    // Build executable
     std::string clangCmd = "clang " + tempRunnerPath + " " + objFile + " -o " + exeFile;
     
-    std::cout << "Linking executable: " << exeFile << std::endl;  // Fixed std::cout
+    std::cout << "Linking executable: " << exeFile << std::endl;
     int linkResult = system(clangCmd.c_str());
     
-    // clean up temporary runner file and object file for tasia file
+    // Clean up temp files
     std::filesystem::remove(tempRunnerPath);
 
-    // After successful linking
     if (linkResult == 0) {
         // Clean up the object file
         std::filesystem::remove(objFile);
         
-        // If run, then execute the executable that was built
+        // Run if requested
         if (command == "run") {
             std::cout << "Running: " << exeFile << "..." << std::endl;
             int runResult = system(("./" + exeFile).c_str());

@@ -1,5 +1,6 @@
 # Current style without blocks
 func square(x) {
+  x = 0
   x * x
 }
 

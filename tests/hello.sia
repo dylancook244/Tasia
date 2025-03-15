@@ -1,6 +1,9 @@
-# hello.sia
 func main() {
-  123+93
+  
+  int my_int = 8
+  int my_other_int = 9
+
+  int my_combined_int = my_int + my_other_int
+
+  return my_combined_int
 }
-
-

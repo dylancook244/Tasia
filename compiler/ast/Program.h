@@ -2,7 +2,7 @@
 #ifndef __PROGRAM_H__
 #define __PROGRAM_H__
 
-#include "FunctionAST.h"
+#include "FuncAST.h"
 #include "StmtAST.h"
 #include <vector>
 #include <memory>
@@ -10,14 +10,14 @@
 
 class Program : public ASTNode {
 private:
-    std::vector<std::unique_ptr<FunctionAST>> functions;
+    std::vector<std::unique_ptr<FuncAST>> functions;
     std::vector<std::unique_ptr<StmtAST>> statements;
     std::string sourceFile;
     
 public:
     Program(const std::string &source = "") : sourceFile(source) {}
     
-    void addFunction(std::unique_ptr<FunctionAST> func) {
+    void addFunc(std::unique_ptr<FuncAST> func) {
         functions.push_back(std::move(func));
     }
     
@@ -25,7 +25,7 @@ public:
         statements.push_back(std::move(stmt));
     }
     
-    const std::vector<std::unique_ptr<FunctionAST>> &getFunctions() const {
+    const std::vector<std::unique_ptr<FuncAST>> &getFunctions() const {
         return functions;
     }
     

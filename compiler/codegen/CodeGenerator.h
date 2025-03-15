@@ -17,9 +17,12 @@
 #include "ast/VariableExprAST.h"
 #include "ast/BinaryExprAST.h"
 #include "ast/CallExprAST.h"
-#include "ast/PrototypeAST.h"
-#include "ast/FunctionAST.h"
+#include "ast/FuncInterfaceAST.h"
+#include "ast/FuncAST.h"
 #include "ast/BlockExprAST.h"
+#include "ast/DeclarationExprAST.h"
+#include "ast/ReferenceExprAST.h"
+#include "ast/DereferenceExprAST.h"
 #include "ast/StmtAST.h"
 #include "ast/Program.h"
 
@@ -37,7 +40,11 @@ private:
     void reportError(const std::string& msg, const SourceLocation& loc);
 
     void createMainWrapper();
-    
+
+    llvm::AllocaInst* CreateEntryBlockAlloca(llvm::Function* func, const std::string& varName);
+
+    llvm::Value* logErrorV(const std::string& str);
+
 public:
     CodeGenerator(const std::string& moduleName = "my_module") {
         // Initialize everything with proper ownership
@@ -56,8 +63,11 @@ public:
     llvm::Value* generateCode(CallExprAST* expr);
     llvm::Value* generateCode(BlockExprAST* expr);
     llvm::Value* generateCode(StmtAST* stmt);
-    llvm::Function* generateCode(PrototypeAST* proto);
-    llvm::Function* generateCode(FunctionAST* func);
+    llvm::Value* generateCode(DeclarationExprAST* expr);
+    llvm::Value* generateCode(ReferenceExprAST* expr);
+    llvm::Value* generateCode(DereferenceExprAST* expr);
+    llvm::Function* generateCode(FuncInterfaceAST* funcInterface);
+    llvm::Function* generateCode(FuncAST* func);
     
     // Generate code for an entire program
     bool generateCode(Program* program);

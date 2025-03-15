@@ -2,6 +2,7 @@
 #include "lexer/lexer.h"
 #include <string>
 #include <cctype>
+#include <iostream>
 
 Lexer::Lexer(const std::string &source) 
     : sourceBuffer(source),
@@ -15,7 +16,7 @@ Lexer::Lexer(const std::string &source)
 char Lexer::getNextChar() {
     // return if at end
     if (currentPosition >= sourceBuffer.length()) {
-        return EOF;
+        return END_OF_FILE;
     }
     // otherwise advance one space
     return sourceBuffer[currentPosition++];
@@ -36,12 +37,11 @@ int Lexer::getNextToken() {
             }
 
             // keyword checking
-            if (identifierStr == "func") return tok_func;
-            if (identifierStr == "extern") return tok_extern;
-            return tok_identifier;
+            if (identifierStr == "func") return FUNC;
+            return IDENT;
         }
 
-        // handle numbers
+        // handle ints
         if (isdigit(lastChar) || lastChar == '.') {
             std::string numStr;
 
@@ -51,13 +51,13 @@ int Lexer::getNextToken() {
             } while (isdigit(lastChar) || lastChar == '.');
 
             numVal = strtod(numStr.c_str(), nullptr);
-            return tok_number;
+            return INT;
         }
 
         // new line chars
         if (lastChar == '\n') {
             lastChar = getNextChar();
-            return tok_line_end;
+            return LINE_END;
         }
 
         // handles continuations
@@ -75,27 +75,44 @@ int Lexer::getNextToken() {
         if (lastChar == '#') {
             do {
                 lastChar = getNextChar();
-            } while (lastChar != '\n' && lastChar != '\r' && lastChar != EOF);
+            } while (lastChar != '\n' && lastChar != '\r' && lastChar != END_OF_FILE);
 
-            if (lastChar != EOF) {
+            if (lastChar != END_OF_FILE) {
                 lastChar = getNextChar(); // get rid of the newline
                 continue;
             }
         }
 
-        if (lastChar == EOF) {
-            return tok_eof;
+        if (lastChar == END_OF_FILE) {
+            return END_OF_FILE;
         }
 
-        if (lastChar == '{' || lastChar == '}') {
+        if (lastChar == '{' || lastChar == '}' || lastChar == '(' || lastChar == ')') {
             int thisChar = lastChar;
             lastChar = getNextChar();
             return thisChar;
         }
 
-        // if we have any other single char tokens
-        int thisChar = lastChar;
-        lastChar = getNextChar();
-        return thisChar;
+        if (lastChar == '+' || lastChar == '-' || lastChar == '*' || lastChar == '/') {
+            int thisChar = lastChar;
+            lastChar = getNextChar();
+            return thisChar;
+        }
+
+        
+        if (lastChar == '=') {
+            int thisChar = lastChar;
+            lastChar = getNextChar();
+            return thisChar;
+        }
+        
+
+        std::cerr << "Unhandled token: '" 
+          << static_cast<char>(lastChar)  // Convert number to character
+          << "' (ASCII " << static_cast<int>(lastChar) << ")"
+          << std::endl;
+
+        exit(1);
+        
     }
 }

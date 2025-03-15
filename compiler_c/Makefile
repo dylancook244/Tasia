@@ -5,71 +5,36 @@ ARCH := $(shell uname -m 2>/dev/null || echo x86_64)
 # Set up paths based on OS
 ifeq ($(OS),Darwin)
     # macOS
-    LLVM_PATH ?= /opt/homebrew/opt/llvm
     INSTALL_DIR = /usr/local/bin
     SUDO = sudo
 else ifeq ($(OS),Linux)
     # Linux
-    ifeq ($(shell lsb_release -is 2>/dev/null),Ubuntu)
-        # Ubuntu - explicitly use version 19
-        LLVM_PATH ?= /usr
-        CC = /usr/bin/clang++-19
-        LLVM_CONFIG = /usr/bin/llvm-config-19
-    else
-        # Other Linux distributions
-        LLVM_PATH ?= /usr
-        CC = $(LLVM_PATH)/bin/clang++
-        LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config
-    endif
     INSTALL_DIR = /usr/bin
     SUDO = sudo
 else
     # Windows
-    LLVM_PATH ?= "C:/Program Files/LLVM"
     INSTALL_DIR = "C:/Program Files/tasia/bin"
     SUDO =
-    # Remove extra quotes after substitution for Windows commands
-    LLVM_PATH_CLEAN := $(subst ",,$(subst \,/,$(LLVM_PATH)))
 endif
 
 # Dynamic compiler detection
 ifeq ($(OS),Windows)
-    CC = "$(LLVM_PATH_CLEAN)/bin/clang++.exe"
-    LLVM_CONFIG = "$(LLVM_PATH_CLEAN)/bin/llvm-config.exe"
+    CC = clang.exe
     EXE_EXT = .exe
 else
-    CC = $(LLVM_PATH)/bin/clang++
-    LLVM_CONFIG = $(LLVM_PATH)/bin/llvm-config
+    CC = clang
     EXE_EXT =
 endif
 
 # Source files (Windows-compatible)
 ifeq ($(OS),Windows)
-    SOURCES := $(shell dir /s /b *.cpp 2>NUL)
+    SOURCES := $(shell dir /s /b *.c 2>NUL)
 else
-    SOURCES := $(shell find . -name "*.cpp")
+    SOURCES := $(shell find . -name "*.c")
 endif
 
-# Adjust flags for different platforms
-CXXFLAGS = -std=c++17 -g -O3
-ifeq ($(OS),Darwin)
-    CXXFLAGS += -stdlib=libc++
-endif
-
-# Include paths with proper quoting
-ifeq ($(OS),Windows)
-    INCLUDES = -I"$(LLVM_PATH_CLEAN)/include" -I./
-else
-    INCLUDES = -I$(LLVM_PATH)/include -I./
-endif
-
-# Handle LLVM flags differently on Windows
-ifeq ($(OS),Windows)
-    # Manually specify LLVM libraries for Windows
-    LLVMFLAGS = -L"$(LLVM_PATH_CLEAN)/lib" -lLLVMCore -lLLVMSupport -lLLVMX86CodeGen
-else
-    LLVMFLAGS = $(shell $(LLVM_CONFIG) --cxxflags --ldflags --system-libs --libs all)
-endif
+# Compiler flags
+CFLAGS = -std=c11 -g -O3
 
 # Target name
 TEMP_TARGET = _tasia_build_temp$(EXE_EXT)
@@ -100,8 +65,8 @@ endif
 
 build_temp:
 	@echo "Building compiler..."
-	@echo "Command: $(CC) $(CXXFLAGS) $(INCLUDES) $(LLVMFLAGS) $(SOURCES) -o $(TEMP_TARGET)"
-	$(CC) $(CXXFLAGS) $(INCLUDES) $(LLVMFLAGS) $(SOURCES) -o $(TEMP_TARGET)
+	@echo "Command: $(CC) $(CFLAGS) $(SOURCES) -o $(TEMP_TARGET)"
+	$(CC) $(CFLAGS) $(SOURCES) -o $(TEMP_TARGET)
 
 uninstall:
 	@echo "Removing from $(INSTALL_DIR)..."

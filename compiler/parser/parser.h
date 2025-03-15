@@ -13,9 +13,12 @@
 #include "ast/VariableExprAST.h"
 #include "ast/BinaryExprAST.h"
 #include "ast/CallExprAST.h"
-#include "ast/PrototypeAST.h"
-#include "ast/FunctionAST.h"
+#include "ast/FuncInterfaceAST.h"
+#include "ast/FuncAST.h"
 #include "ast/BlockExprAST.h"
+#include "ast/DeclarationExprAST.h"
+#include "ast/ReferenceExprAST.h"
+#include "ast/DereferenceExprAST.h"
 #include "ast/StmtAST.h"
 #include "ast/Program.h"
 
@@ -49,14 +52,17 @@ private:
     std::unique_ptr<ExprAST> parseBinOpRHS(int exprPrec, std::unique_ptr<ExprAST> LHS);
     std::unique_ptr<ExprAST> parseExpression();
     std::unique_ptr<ExprAST> parseBlockExpr();
-    std::unique_ptr<PrototypeAST> parsePrototype();
-    std::unique_ptr<FunctionAST> parseDefinition();
-    std::unique_ptr<PrototypeAST> parseExtern();
+    std::unique_ptr<FuncInterfaceAST> parseFuncInterface();
+    std::unique_ptr<FuncAST> parseDefinition();
+    std::unique_ptr<FuncInterfaceAST> parseExtern();
     std::unique_ptr<StmtAST> parseStatement();
+    std::unique_ptr<ExprAST> parseDeclaration();
+    std::unique_ptr<ExprAST> parseReference();
+    std::unique_ptr<ExprAST> parseDereference();
     
     // Error handling helpers
     std::unique_ptr<ExprAST> logError(const char *str);
-    std::unique_ptr<PrototypeAST> logErrorP(const char *str);
+    std::unique_ptr<FuncInterfaceAST> logErrorP(const char *str);
     
 public:
     // Constructor sets up the parser with a lexer and initializes operator precedence

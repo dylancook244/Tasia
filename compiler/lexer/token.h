@@ -1,20 +1,129 @@
 #ifndef __TOKEN_H__
 #define __TOKEN_H__
 
-// The lexer returns tokens [0-255] if it's an unknown character
-// otherwise it returns one of these for known things
+// I stole these tokens from Go since i have a similar system, will need modifying depending on the tasia naming convention
+
 enum Token {
-  // End Of File or line
-  tok_eof = -1,
-  tok_line_end = -2,
 
-  // Commands
-  tok_func = -3,
-  tok_extern = -4,
+	// Special tokens
+	ILLEGAL = 0,
+	END_OF_FILE,
+	COMMENT,
+  	LINE_END,
 
-  // Primary
-  tok_identifier = -5,
-  tok_number = -6,
+	literal_beg,
+	// Identifiers and basic type literals
+	// (these tokens stand for classes of literals)
+	IDENT,  // main
+	INT,    // 12345
+	FLOAT,  // 123.45
+	IMAG,   // 123.45i
+	CHAR,   // 'a'
+	STRING, // "abc"
+	literal_end,
+
+  	MUT,    // mut
+  	REF,    // &
+  	DEREF,  // *
+
+	operator_beg,
+	// Operators and delimiters
+	ADD, // +
+	SUB, // -
+	MUL, // *
+	QUO, // /
+	REM, // %
+
+	AND,     // &
+	OR,      // |
+	XOR,     // ^
+	SHL,     // <<
+	SHR,     // >>
+	AND_NOT, // &^
+
+	ADD_ASSIGN, // +=
+	SUB_ASSIGN, // -=
+	MUL_ASSIGN, // *=
+	QUO_ASSIGN, // /=
+	REM_ASSIGN, // %=
+
+	AND_ASSIGN,     // &=
+	OR_ASSIGN,      // |=
+	XOR_ASSIGN,     // ^=
+	SHL_ASSIGN,     // <<=
+	SHR_ASSIGN,     // >>=
+	AND_NOT_ASSIGN, // &^=
+
+	LAND,  // &&
+	LOR,  // ||
+	ARROW, // <-
+	INC,   // ++
+	DEC,   // --
+
+	EQL,    // ==
+	LSS,   // <
+	GTR,    // >
+	ASSIGN, // =
+	NOT,    // !
+
+	NEQ,      // !=
+	LEQ,      // <=
+	GEQ,      // >=
+	DEFINE,   // :=
+	ELLIPSIS, // ...
+
+	LPAREN, // (
+	LBRACK, // [
+	LBRACE, // {
+	COMMA,  // ,
+	PERIOD, // .
+
+	RPAREN,    // )
+	RBRACK,    // ]
+	RBRACE,    // }
+	SEMICOLON, // ;
+	COLON,     // :
+	operator_end,
+
+	keyword_beg,
+	// Keywords
+	BREAK,
+	CASE,
+	CHAN,
+	CONST,
+	CONTINUE,
+
+	DEFAULT,
+	DEFER,
+	ELSE,
+	FALLTHROUGH,
+	FOR,
+
+	FUNC,
+	GO,
+	GOTO,
+	IF,
+	IMPORT,
+
+	INTERFACE,
+	MAP,
+	PACKAGE,
+	RANGE,
+	RETURN,
+
+	SELECT,
+	STRUCT,
+	SWITCH,
+	TYPE,
+	VAR,
+	keyword_end,
+
+	additional_beg,
+	// additional tokens, handled in an ad-hoc manner
+	TILDE,
+	additional_end,
+
 };
+
 
 #endif

@@ -6,29 +6,29 @@ Output file: hello.o
 
 === SOURCE CODE ===
 
-   1 | # hello.sia
-   2 | func main()
-   3 |   123+93
-   4 | 
-   5 | 
+   1 | func main() {
+   2 |   42 - 193
+   3 | }
 
 
 === TOKEN DUMP ===
 
 FUNC
-IDENTIFIER(main)
+IDENT(main)
 CHAR('(')
 CHAR(')')
-NUMBER(123.000000)
-CHAR('+')
-NUMBER(93.000000)
-EOF
+CHAR('{')
+INT(42.000000)
+CHAR('-')
+INT(193.000000)
+CHAR('}')
+END_OF_FILE
 
 
 === AST DUMP ===
 
 Program(hello.sia,
-  Functions: [Function(Proto(TASIA_ENTRY_FUNCTION, []), BinExpr(add, NumberExpr(123), NumberExpr(93)))],
+  Functions: [Function(Proto(TASIA_ENTRY_FUNCTION, []), BlockExpr([BinExpr(sub, NumberExpr(42), NumberExpr(193))]))],
   Statements: []
 )
 
@@ -40,7 +40,7 @@ source_filename = "hello.sia"
 
 define double @TASIA_ENTRY_FUNCTION() {
 entry:
-  ret double 2.160000e+02
+  ret double -1.510000e+02
 }
 
 
@@ -51,6 +51,7 @@ hello.o:	file format mach-o arm64
 Disassembly of section __TEXT,__text:
 
 0000000000000000 <ltmp0>:
-       0: d2e80d68     	mov	x8, #0x406b000000000000 ; =4641803840935428096
-       4: 9e670100     	fmov	d0, x8
-       8: d65f03c0     	ret
+       0: d2dc0008     	mov	x8, #0xe00000000000     ; =246290604621824
+       4: f2f80c48     	movk	x8, #0xc062, lsl #48
+       8: 9e670100     	fmov	d0, x8
+       c: d65f03c0     	ret

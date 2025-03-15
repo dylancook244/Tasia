@@ -117,21 +117,21 @@ llvm::Value *CodeGenerator::generateCode(CallExprAST *expr) {
 }
 
 // this is for function bodies, their name, parameters, and returns
-llvm::Function *CodeGenerator::generateCode(PrototypeAST *proto) {
+llvm::Function *CodeGenerator::generateCode(FuncInterfaceAST *funcInterface) {
   // get function name, with special handling for main
-  std::string funcName = proto->getName();
+  std::string funcName = funcInterface->getName();
 
   // Get argument types
   std::vector<llvm::Type*> argTypes;
-  for (unsigned i = 0; i < proto->getArgs().size(); ++i) {
+  for (unsigned i = 0; i < funcInterface->getArgs().size(); ++i) {
     argTypes.push_back(llvm::Type::getDoubleTy(*context));
   }
 
   // Create function type
   llvm::FunctionType* FT =
       llvm::FunctionType::get(llvm::Type::getDoubleTy(*context),  // Return type
-                              argTypes,  // Argument types
-                              false);    // Not varargs
+        argTypes,  // Argument types
+          =false);    // Not varargs
 
   // Create the function with EXTERNAL linkage - this is critical!
   llvm::Function* F = llvm::Function::Create(
@@ -145,19 +145,19 @@ llvm::Function *CodeGenerator::generateCode(PrototypeAST *proto) {
   // Name arguments
   unsigned idx = 0;
   for (auto& arg : F->args()) {
-    arg.setName(proto->getArgs()[idx++]);
+    arg.setName(funcInterface->getArgs()[idx++]);
   }
 
   return F;
 }
 
-llvm::Function *CodeGenerator::generateCode(FunctionAST *func) {
+llvm::Function *CodeGenerator::generateCode(FuncAST *func) {
   // First, check for an existing function from a previous declaration
   llvm::Function* theFunction =
-      module->getFunction(func->getPrototype()->getName());
+      module->getFunction(func->getFuncInterface()->getName());
 
   if (!theFunction) {
-    theFunction = generateCode(func->getPrototype());
+    theFunction = generateCode(func->getFuncInterface());
   }
 
   if (!theFunction) return nullptr;
@@ -197,10 +197,10 @@ llvm::Value *CodeGenerator::generateCode(StmtAST *stmt) {
 bool CodeGenerator::generateCode(Program *program) {
   if (!program) return false;
 
-  // First, generate all function prototypes to allow for forward references
+  // First, generate all function interfaces to allow for forward references
   for (const auto& func : program->getFunctions()) {
-    if (auto* proto = func->getPrototype()) {
-      generateCode(proto);
+    if (auto* funcInterface = func->getFuncInterface()) {
+      generateCode(funcInterface);
     }
   }
 
@@ -219,4 +219,88 @@ bool CodeGenerator::generateCode(Program *program) {
   }
 
   return !hasErrors();
+}
+
+llvm::Value* CodeGenerator::generateCode(DeclarationExprAST* expr) {
+  // Generate code for initialization if present
+  llvm::Value* initVal = nullptr;
+  if (expr->getInitExpr()) {
+      initVal = generateCode(expr->getInitExpr());
+      if (!initVal) return nullptr;
+  } else {
+      // Default initialization
+      initVal = llvm::ConstantFP::get(*context, llvm::APFloat(0.0));
+;
+  }
+  
+  // Create an alloca for this variable
+  llvm::Function* function = builder->GetInsertBlock()->getParent();
+  llvm::AllocaInst* alloca = CreateEntryBlockAlloca(function, expr->getName());
+  
+  // Store the initial value into the alloca
+  builder->CreateStore(initVal, alloca);
+  
+  // Remember this binding
+  namedValues[expr->getName()] = alloca;
+  
+  return initVal;
+}
+
+llvm::Value* CodeGenerator::generateCode(ReferenceExprAST* expr) {
+  // If we're taking a reference to a variable, simply return its address
+  if (auto* varExpr = dynamic_cast<VariableExprAST*>(expr->getTarget())) {
+      auto it = namedValues.find(varExpr->getName());
+      if (it == namedValues.end()) {
+          return logErrorV("Unknown variable name: " + varExpr->getName());
+      }
+      
+      // For references, we just return the pointer
+      return it->second;
+  }
+  
+  // Otherwise, evaluate the expression and store it in a temporary
+  llvm::Value* val = generateCode(expr->getTarget());
+  if (!val) return nullptr;
+  
+  // Create a temporary to hold the value
+  llvm::Function* function = builder->GetInsertBlock()->getParent();
+  llvm::AllocaInst* tempAlloca = CreateEntryBlockAlloca(function, "ref.temp");
+  
+  // Store the value in the temporary
+  builder->CreateStore(val, tempAlloca);
+  
+  // Return the address of the temporary
+  return tempAlloca;
+}
+
+llvm::Value* CodeGenerator::generateCode(DereferenceExprAST* expr) {
+  // Generate code for the reference
+  llvm::Value* ref = generateCode(expr->getTarget());
+  if (!ref) return nullptr;
+  
+  // If it's not a pointer type, error
+  if (!ref->getType()->isPointerTy()) {
+      return logErrorV("Cannot dereference non-pointer type");
+  }
+  
+  if (ref->getType()->isPointerTy()) {
+    // In LLVM 19, we need to use a different approach
+    // Use double as the default pointee type since Tasia currently uses doubles for numbers
+    llvm::Type *elementType = llvm::Type::getDoubleTy(*context);
+    return builder->CreateLoad(elementType, ref, "deref");
+  } else {
+    reportError("Cannot dereference non-pointer type", expr->getLocation());
+    return nullptr;
+  }
+
+}
+
+llvm::AllocaInst* CodeGenerator::CreateEntryBlockAlloca(llvm::Function* function, const std::string& varName) {
+  llvm::IRBuilder<> TmpB(&function->getEntryBlock(), function->getEntryBlock().begin());
+  return TmpB.CreateAlloca(llvm::Type::getDoubleTy(*context), 0, varName);
+}
+
+llvm::Value* CodeGenerator::logErrorV(const std::string& str) {
+  reportError(str, SourceLocation());
+  return nullptr;
 }

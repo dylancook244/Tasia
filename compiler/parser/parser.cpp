@@ -3,7 +3,7 @@
 // Constructor initializes the parser
 Parser::Parser(Lexer& lex, const std::string& filename) 
     : lexer(lex), 
-      currentToken(lex.getNextToken()),
+      currentToken(lex.getNextToken()), // <- first getNextToken() call in compiler
       currentFilename(filename) 
 {
     // Initialize operator precedence
@@ -31,7 +31,7 @@ std::unique_ptr<ExprAST> Parser::logError(const char* str) {
     return nullptr;
 }
 
-std::unique_ptr<PrototypeAST> Parser::logErrorP(const char* str) {
+std::unique_ptr<FuncInterfaceAST> Parser::logErrorP(const char* str) {
     addError(str);
     return nullptr;
 }
@@ -48,7 +48,7 @@ int Parser::getTokPrecedence() {
     return tokPrec;
 }
 
-// This routine expects to be called when the current token is a tok_number
+// This routine expects to be called when the current token is a INT
 std::unique_ptr<ExprAST> Parser::parseNumberExpr() {
     auto Result = std::make_unique<NumberExprAST>(lexer.getNumber());
     getNextToken();
@@ -57,7 +57,7 @@ std::unique_ptr<ExprAST> Parser::parseNumberExpr() {
 
 // This routine parses expressions in "(" and ")" characters
 std::unique_ptr<ExprAST> Parser::parseParenExpr() {
-    getNextToken(); // eat '('
+    getNextToken(); // drop '('
 
     auto V = parseExpression();
     if (!V) {
@@ -68,21 +68,21 @@ std::unique_ptr<ExprAST> Parser::parseParenExpr() {
         return logError("Expected ')'");
     }
 
-    getNextToken(); // eat ')'
+    getNextToken(); // drop ')'
     return V;
 }
 
-// This routine expects to be called when current token is tok_identifier
+// This routine expects to be called when current token is IDENT
 std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
     std::string idName = lexer.getIdentifier();
 
-    getNextToken(); // eat identifier
+    getNextToken(); // drop identifier
 
     if (currentToken != '(') {
         return std::make_unique<VariableExprAST>(idName);
     }
 
-    getNextToken(); // eat '('
+    getNextToken(); // drop '('
     std::vector<std::unique_ptr<ExprAST>> args;
     if (currentToken != ')') {
         while (true) {
@@ -100,11 +100,11 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
                 return logError("Expected ')' or ',' in argument list");
             }
 
-            getNextToken(); // eat ','
+            getNextToken(); // drop ','
         }
     }
 
-    getNextToken(); // eat ')'
+    getNextToken(); // drop ')'
 
     return std::make_unique<CallExprAST>(idName, std::move(args));
 }
@@ -119,14 +119,18 @@ std::unique_ptr<ExprAST> Parser::parsePrimary() {
                 return logError("Unexpected closing brace '}'");
             }
             return logError("Unknown token when expecting an expression");
-        case tok_identifier:
+        case IDENT:
             return parseIdentifierExpr();
-        case tok_number:
-            return parseNumberExpr();
         case '(':
             return parseParenExpr();
         case '{':
             return parseBlockExpr();
+        case '=':
+            return parseDeclaration();
+        case '&':
+            return parseReference();
+        case '*':
+            return parseDereference();
     }
 }
 
@@ -139,7 +143,7 @@ std::unique_ptr<ExprAST> Parser::parseBinOpRHS(int exprPrec, std::unique_ptr<Exp
         }
 
         int binOp = currentToken;
-        getNextToken(); // eat the operator
+        getNextToken(); // drop the operator
 
         auto RHS = parsePrimary();
         if (!RHS) {
@@ -158,6 +162,8 @@ std::unique_ptr<ExprAST> Parser::parseBinOpRHS(int exprPrec, std::unique_ptr<Exp
     }
 }
 
+
+
 std::unique_ptr<ExprAST> Parser::parseExpression() {
     auto LHS = parsePrimary();
 
@@ -169,14 +175,14 @@ std::unique_ptr<ExprAST> Parser::parseExpression() {
 }
 
 std::unique_ptr<ExprAST> Parser::parseBlockExpr() {
-    getNextToken(); // eat '{'
+    getNextToken(); // drop '{'
     
     std::vector<std::unique_ptr<ExprAST>> expressions;
     
     // Parse expressions until we hit closing brace
-    while (currentToken != '}' && currentToken != tok_eof) {
+    while (currentToken != '}' && currentToken != END_OF_FILE) {
         // Skip empty lines
-        if (currentToken == tok_line_end) {
+        if (currentToken == LINE_END) {
             getNextToken();
             continue;
         }
@@ -191,7 +197,7 @@ std::unique_ptr<ExprAST> Parser::parseBlockExpr() {
         expressions.push_back(std::move(expr));
         
         // If we see a line end, consume it
-        if (currentToken == tok_line_end) {
+        if (currentToken == LINE_END) {
             getNextToken();
         }
     }
@@ -199,49 +205,49 @@ std::unique_ptr<ExprAST> Parser::parseBlockExpr() {
     if (currentToken != '}') {
         return logError("Expected '}' at end of block");
     }
-    getNextToken(); // eat '}'
+    getNextToken(); // drop '}'
     
     return std::make_unique<BlockExprAST>(std::move(expressions));
 }
 
 
-std::unique_ptr<PrototypeAST> Parser::parsePrototype() {
-    if (currentToken != tok_identifier) {
-        return logErrorP("Expected function name in prototype");
+std::unique_ptr<FuncInterfaceAST> Parser::parseFuncInterface() {
+    if (currentToken != IDENT) {
+        return logErrorP("Expected function name in function interface");
     }
 
-    std::string fnName = lexer.getIdentifier();
+    std::string funcName = lexer.getIdentifier();
 
     // rename the entry point so we can use main() in tasia
-    if (fnName == "main") {
-        fnName = "TASIA_ENTRY_FUNCTION";
+    if (funcName == "main") {
+        funcName = "TASIA_ENTRY_FUNCTION";
     }
 
-    getNextToken(); // eat function name
+    getNextToken(); // drop identifier name
 
     if (currentToken != '(') {
-        return logErrorP("Expected '(' in prototype");
+        return logErrorP("Expected '(' in function interface");
     }
 
     std::vector<std::string> argNames;
-    while (getNextToken() == tok_identifier) {
+    while (getNextToken() == IDENT) {
         argNames.push_back(lexer.getIdentifier());
     }
 
     if (currentToken != ')') {
-        return logErrorP("Expected ')' in prototype");
+        return logErrorP("Expected ')' in function interface");
     }
 
-    getNextToken(); // eat ')'
+    getNextToken(); // drop ')'
 
-    return std::make_unique<PrototypeAST>(fnName, std::move(argNames));
+    return std::make_unique<FuncInterfaceAST>(funcName, std::move(argNames));
 }
 
-std::unique_ptr<FunctionAST> Parser::parseDefinition() {
-    getNextToken(); // eat 'func'
+std::unique_ptr<FuncAST> Parser::parseDefinition() {
+    getNextToken(); // drop 'func'
     
-    auto proto = parsePrototype();
-    if (!proto) {
+    auto funcInterface = parseFuncInterface();
+    if (!funcInterface) {
         return nullptr;
     }
 
@@ -257,12 +263,12 @@ std::unique_ptr<FunctionAST> Parser::parseDefinition() {
         return nullptr;
     }
     
-    return std::make_unique<FunctionAST>(std::move(proto), std::move(blockExpr));
+    return std::make_unique<FuncAST>(std::move(funcInterface), std::move(blockExpr));
 }
 
-std::unique_ptr<PrototypeAST> Parser::parseExtern() {
-    getNextToken(); // eat 'extern'
-    return parsePrototype();
+std::unique_ptr<FuncInterfaceAST> Parser::parseExtern() {
+    getNextToken(); // drop 'extern'
+    return parseFuncInterface();
 }
 
 std::unique_ptr<StmtAST> Parser::parseStatement() {
@@ -270,37 +276,116 @@ std::unique_ptr<StmtAST> Parser::parseStatement() {
     if (!expr) return nullptr;
 
     // need line end
-    if (currentToken != tok_line_end) {
+    if (currentToken != LINE_END) {
         logError("Expected end of line");
         return nullptr;
     }
 
-    getNextToken(); // eat newline
+    getNextToken(); // drop newline
     return std::make_unique<StmtAST>(std::move(expr));
+}
+
+std::unique_ptr<ExprAST> Parser::parseDeclaration() {
+    // Expect 'let' keyword
+    getNextToken(); // drop 'let'
+    
+    if (currentToken != IDENT) {
+        return logError("Expected identifier after 'let'");
+    }
+    
+    std::string name = lexer.getIdentifier();
+    getNextToken(); // drop identifier
+    
+    // Check for mutability specifier
+    bool mutable_ = true;
+    if (currentToken == MUT) {
+        mutable_ = true;
+        getNextToken(); // drop 'mut'
+    } else if (currentToken == CONST) {
+        mutable_ = false;
+        getNextToken(); // drop 'const'
+    }
+    
+    // Check for type annotation
+    std::string typeHint;
+    if (currentToken == ':') {
+        getNextToken(); // drop ':'
+        
+        if (currentToken != IDENT) {
+            return logError("Expected type name after ':'");
+        }
+        
+        typeHint = lexer.getIdentifier();
+        getNextToken(); // drop type name
+    }
+    
+    // Check for initialization
+    std::unique_ptr<ExprAST> initExpr;
+    if (currentToken == '=') {
+        getNextToken(); // drop '='
+        
+        initExpr = parseExpression();
+        if (!initExpr) {
+            return nullptr;
+        }
+    }
+    
+    return std::make_unique<DeclarationExprAST>(name, std::move(initExpr), typeHint, mutable_);
+}
+
+std::unique_ptr<ExprAST> Parser::parseReference() {
+    // Expect '&' character
+    getNextToken(); // drop '&'
+    
+    // Check if it's a mutable reference
+    bool mutable_ = false;
+    if (currentToken == MUT) {
+        mutable_ = true;
+        getNextToken(); // drop 'mut'
+    }
+    
+    auto target = parsePrimary();
+    if (!target) {
+        return nullptr;
+    }
+    
+    return std::make_unique<ReferenceExprAST>(std::move(target), mutable_);
+}
+
+std::unique_ptr<ExprAST> Parser::parseDereference() {
+    // Expect '*' character
+    getNextToken(); // drop '*'
+    
+    auto target = parsePrimary();
+    if (!target) {
+        return nullptr;
+    }
+    
+    return std::make_unique<DereferenceExprAST>(std::move(target));
 }
 
 // Main parsing entry point
 std::unique_ptr<Program> Parser::parseFile() {
-  auto program = std::make_unique<Program>(currentFilename);
+    auto program = std::make_unique<Program>(currentFilename);
 
-  while (currentToken != tok_eof) {
-      switch (currentToken) {
-          case tok_func: {
-              auto func = parseDefinition();
-              if (func)
-                  program->addFunction(std::move(func));
-              break;
-          }
-          case tok_line_end:
-              getNextToken(); // Skip empty lines
-              break;
-          default: {
-              auto stmt = parseStatement();
-              if (stmt)
-                  program->addStatement(std::move(stmt));
-              break;
-          }
-      }
-  }
-  return program;
+    while (currentToken != END_OF_FILE) {
+        switch (currentToken) {
+            case FUNC: {
+                auto func = parseDefinition();
+                if (func)
+                    program->addFunc(std::move(func));
+                break;
+            }
+            case LINE_END:
+                getNextToken(); // Skip empty lines
+                break;
+            default: {
+                auto stmt = parseStatement();
+                if (stmt)
+                    program->addStatement(std::move(stmt));
+                break;
+            }
+        }
+    }
+    return program;
 }
