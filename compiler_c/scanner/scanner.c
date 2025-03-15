@@ -28,7 +28,7 @@ Scanner* init_scanner(const char* filepath) {
 }
 
 // Use this instead of strdup
-char* my_strdup(const char* str) {
+static char* my_strdup(const char* str) {
     size_t len = strlen(str) + 1;
     char* new_str = malloc(len);
     if (new_str) {

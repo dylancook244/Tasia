@@ -36,6 +36,8 @@ const char* token_type_to_string(TokenType type) {
         case STRING_LITERAL:       return "STRING_LITERAL";
         case BOOL_LITERAL:         return "BOOL_LITERAL";
 
+        case COMMA:        return "COMMA";
+
         case ADD:          return "ADD";
         case SUBTRACT:     return "SUBTRACT";
         case MULTIPLY:     return "MULTIPLY";

@@ -25,6 +25,8 @@ typedef enum {
     STRING_LITERAL,         // literal value
     BOOL_LITERAL,           // literal value
 
+    COMMA,
+
     ADD,            // +
     SUBTRACT,       // -
     MULTIPLY,       // *
@@ -57,6 +59,7 @@ typedef struct {
         int int_value;
         float float_value;
         char* string_value;
+        char char_value;
         bool bool_value;
     } value;
 } Token;
