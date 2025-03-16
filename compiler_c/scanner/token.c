@@ -36,12 +36,17 @@ const char* token_type_to_string(TokenType type) {
         case STRING_LITERAL:       return "STRING_LITERAL";
         case BOOL_LITERAL:         return "BOOL_LITERAL";
 
+        case ARRAY:         return "ARRAY";
+        case LIST:         return "LIST";
+        case TUPLE:         return "TUPLE";
+
         case ADD:          return "ADD";
         case SUBTRACT:     return "SUBTRACT";
         case MULTIPLY:     return "MULTIPLY";
         case QUOTIENT:     return "QUOTIENT";
 
         case ASSIGN:       return "ASSIGN";
+        case COMMA:        return "COMMA";
 
         case LBRACE:       return "LBRACE";
         case RBRACE:       return "RBRACE";

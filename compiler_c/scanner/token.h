@@ -25,12 +25,17 @@ typedef enum {
     STRING_LITERAL,         // literal value
     BOOL_LITERAL,           // literal value
 
+    ARRAY,           // literal value
+    LIST,           // literal value
+    TUPLE,           // literal value
+
     ADD,            // +
     SUBTRACT,       // -
     MULTIPLY,       // *
     QUOTIENT,       // /
 
     ASSIGN,         // =
+    COMMA,          // ,
 
     LBRACE,         // {
     RBRACE,         // }

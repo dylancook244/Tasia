@@ -5,6 +5,7 @@ func main() {
   int my_other_int = 9
 
   int my_combined_int = my_int + my_other_int
+  string mystr = {5}array
 
   return my_combined_int
 }

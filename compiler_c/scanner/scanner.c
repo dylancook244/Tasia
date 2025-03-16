@@ -94,6 +94,12 @@ Token* getNextToken(Scanner* scanner) {
             keyword_type = INT;
         } else if (strcmp(buffer, "float") == 0) {
             keyword_type = FLOAT;
+        } else if (strcmp(buffer, "array") == 0) {
+            keyword_type = ARRAY;
+        } else if (strcmp(buffer, "list") == 0) {
+            keyword_type = LIST;
+        } else if (strcmp(buffer, "tuple") == 0) {
+            keyword_type = TUPLE;
         } else if (strcmp(buffer, "char") == 0) {
             keyword_type = CHAR;
         } else if (strcmp(buffer, "string") == 0) {
@@ -273,6 +279,10 @@ Token* getNextToken(Scanner* scanner) {
         case '=':
             token->type = ASSIGN;
             token->raw_text = my_strdup("=");
+            break;
+        case ',':
+            token->type = COMMA;
+            token->raw_text = my_strdup(",");
             break;
         // Add other characters as needed
         default:

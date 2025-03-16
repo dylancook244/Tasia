@@ -15,6 +15,13 @@ def cli_commands():
     if command == "new" and len(sys.argv) > 2:
         project_name = sys.argv[2]
         create_project_scaffolding(project_name)
+    elif command == "run" and len(sys.argv) > 2:
+        file_name = sys.argv[2]
+        # Build file here
+        # Run file here
+    elif command == "build" and len(sys.argv) > 2:
+        file_name = sys.argv[2]
+        # Build file here
     elif command in ["help"]:
         print_help()
     else:
@@ -29,4 +36,7 @@ def print_help():
     print("\nUsage:")
     print("  tasia new PROJECT_NAME   Create a new Tasia project")
     print("  tasia help               Show this help information")
+    print("  tasia run FILE.sia       Compile and run a tasia file")
+    print("  tasia build FILE.SIA     Compile tasia file binary")
+
             
