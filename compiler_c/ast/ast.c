@@ -155,7 +155,7 @@ AstNode* create_var_node(char* name, char* type, AstNode* initializer) {
     return (AstNode*)var;
 }
 
-AstNode* create_array_node(int size, AstNode** elements) {
+AstNode* create_array_node(char* name, char* type, int size, AstNode** elements) {
     // Check array size, must be valid
     if (size <= 0) {
         printf("ERROR: Invalid array size: %d", size);
@@ -166,38 +166,130 @@ AstNode* create_array_node(int size, AstNode** elements) {
     if (!array) return NULL;
 
     array->base.type = NODE_ARRAY_DECL;
+    array->name = name;
+    array->type = type;
     array->list.count = size;
+
+    array->list.elements = elements; // Elements could be an array of nulls or of expressions. We don't care here, either way.
 
     // We have two ways to declare/initialize an array:
     //      1. {}string my_str = array{"hey", "there", ...} - size is inferred
     //      2. {}string my_str = {5}array 
     // For the first, we expect the param elements to be a full array of expressions (the element could be 5+x for example)
     // For the second, expect elements to be passed in as null. In that case, create an empty array of that size.
-    if (elements) {
-        if (sizeof(elements) != (size * sizeof(AstNode*)) ) {
-            printf("ERROR: Elements provided for the array is not of the correct size. \n\tExpected '%d' but got '%d'", size * sizeof(AstNode*), sizeof(elements));
-            return NULL;
-        }
-        array->list.elements = elements;
-    }
-    else { // Else - elements not provided
-        // Allocate the space for our one-dimensional array of AstNode pointers
-        array->list.elements = malloc(size * sizeof(AstNode*));
-        if (!array->list.elements) {
-            printf("Failed to allocate memory space for array elements, size: %d", size);
-            free_ast_node(array);
-            return NULL;
-        }
+    // if (elements) {
+    //     if (sizeof(elements) != (size * sizeof(AstNode*)) ) {
+    //         printf("ERROR: Elements provided for the array is not of the correct size. \n\tExpected '%d' but got '%d'", size * sizeof(AstNode*), sizeof(elements));
+    //         return NULL;
+    //     }
+    //     array->list.elements = elements;
+    // }
+    // else { // Else - elements not provided
+    //     // Allocate the space for our one-dimensional array of AstNode pointers
+    //     array->list.elements = malloc(size * sizeof(AstNode*));
+    //     if (!array->list.elements) {
+    //         printf("Failed to allocate memory space for array elements, size: %d", size);
+    //         free_ast_node(array);
+    //         return NULL;
+    //     }
 
-        // Allocate each element with a null AstNode
-        for (int i = 0; i < size; i++) {
-            array->list.elements[i] = malloc(sizeof(AstNode));
-        }
-    }
+    //     // Allocate each element with a null AstNode
+    //     for (int i = 0; i < size; i++) {
+    //         array->list.elements[i] = malloc(sizeof(AstNode));
+    //     }
+    // }
 
     return (AstNode*)array;
 }
 
+AstNode* create_list_node(char* name, char* type, int capacity, AstNode** elements) {
+    if (capacity < 0) {
+        printf("ERROR: Invalid list capacity: %d", capacity);
+        return NULL;
+    }
+
+    ListDeclNode* new_list = malloc(sizeof(ArrayDeclNode));
+    if (!new_list) return NULL;
+
+    new_list->base.type = NODE_LIST_DECL;
+    new_list->name = name;
+    new_list->type = type;
+    new_list->list.capacity = capacity;
+
+    new_list->list.elements = elements;
+
+    // Number of elements provided
+    // int size_elements = sizeof(elements) / sizeof(elements[0]);
+
+    // Find out how many elements have been supplied.
+    // for (int i = 0; i < size_elements; i++) {
+    //     if (elements[i] != NULL) {
+    //         new_list->list.count++;
+    //     }
+    // }
+
+    // // If count equals capacity, just set them equal. Otherwise, we allocate the space and copy as many elements as possible.
+    // if (new_list->list.count == size_elements) {
+    //     new_list->list.elements = elements;
+    // }
+    // else {
+    //     // Allocate array of size capacity
+    //     new_list->list.elements = malloc(capacity*sizeof(AstNode));
+    //     if (!new_list->list.elements) {
+    //         printf("Failed to allocate memory space for list elements, capacity: %d", capacity);
+    //         free_ast_node(new_list);
+    //         return NULL;
+    //     }
+
+    //     // Copy any elements provided (remaining spots will be null pointers)
+    //     for (int i = 0; i < size_elements; i++) {
+    //         new_list->list.elements[i] = elements[i];
+    //     }
+    // }
+
+    return (AstNode*)new_list;
+}
+AstNode* create_tuple_node(char* name, int size, AstNode** elements) {
+    if (size <= 0) {
+        printf("ERROR: Invalid tuple size: %d", size);
+        return NULL;
+    }
+    TupleDeclNode* tuple = malloc(sizeof(TupleDeclNode));
+
+    tuple->base.type = NODE_TUPLE_DECL;
+    tuple->name = name;
+    tuple->list.elements = elements;
+    tuple->list.count = size;
+
+    return (AstNode*)tuple;
+}
+
+AstNode* create_set_node(char* name, int size, AstNode** elements) {
+    if (size <= 0) {
+        printf("ERROR: Invalid tuple size: %d", size);
+        return NULL;
+    }
+    SetDeclNode* tuple = malloc(sizeof(SetDeclNode));
+
+    
+
+    return (AstNode*)tuple;
+}
+
+AstNode* create_map_node(char* name, int size, AstNode** elements) {
+    if (size <= 0) {
+        printf("ERROR: Invalid map size: %d", size);
+        return NULL;
+    }
+    MapDeclNode* tuple = malloc(sizeof(MapDeclNode));
+
+    tuple->base.type = NODE_TUPLE_DECL;
+    tuple->name = name;
+    tuple->list.elements = elements;
+    tuple->list.count = size;
+
+    return (AstNode*)tuple;
+}
 
 AstNode* create_expr_node(AstNode* expression) {
     ExprStmtNode* expr = malloc(sizeof(ExprStmtNode));

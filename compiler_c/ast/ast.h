@@ -13,6 +13,8 @@ typedef enum {
     NODE_ARRAY_DECL,    // Array declaration
     NODE_LIST_DECL,     // List declaration
     NODE_TUPLE_DECL,    // Tuple declaration
+    NODE_SET_DECL,      // Set declaration
+    NODE_MAP_DECL,      // Map declaration
     NODE_EXPR_STMT,     // Expression statement
     NODE_RETURN_STMT,   // Return statement
     NODE_ASSIGN_EXPR,   // Assignment expression
@@ -70,12 +72,65 @@ typedef struct {
 // Array declaration node
 typedef struct {
     AstNode base;
+    char* name;
+    char* type;
+    struct {   
+        AstNode** elements;
+        int count;
+    } list;
+} ArrayDeclNode;
+
+// TODO: Placeholder definition
+// Vector declaration node
+typedef struct {
+    AstNode base;
+    char* name;
+    char* type;
+    struct {   
+        AstNode** elements; // .push() will double elements and copy over old elements.
+        int capacity;
+        int count;
+    } list;
+} ListDeclNode;
+
+// Tuple declaration node
+typedef struct {
+    AstNode base;
+    char* name;
+    // No strict types for tuple
     struct {   // List of initializers for arrays, lists, tuples
         AstNode** elements;
         int count;
     } list;
-    
-} ArrayDeclNode;
+} TupleDeclNode;
+
+// Set declaration node, (hashmap with value true/false)
+typedef struct {
+    AstNode base;
+    char* name;
+    char* type;
+    // No strict types for tuple
+    struct {   
+        AstNode** elements; // .push() will double elements and copy over old elements.
+        int capacity;
+        int count;
+    } list;
+} SetDeclNode;
+
+// Map declaration node (hashmap implementation)
+typedef struct {
+    AstNode base;
+    char* name;
+    char* type;
+    float load_factor;
+    // No strict types for tuple
+    // TODO: DYLAN! Could just be ListDeclNode* list, since it has the same functionality and data, and every other language does it this way (I think)
+    struct {   // List of initializers for arrays, lists, tuples
+        AstNode** elements; // .push() will double elements and copy over old elements.
+        int capacity;
+        int count;
+    } list; // This is essentially our list/vec implementation
+} MapDeclNode;
 
 // Expression statement node (expression followed by semicolon)
 typedef struct {
@@ -139,7 +194,11 @@ AstNode* create_program_node();
 AstNode* create_func_node(char* name, char* return_type);
 AstNode* create_block_node();
 AstNode* create_var_node(char* name, char* type, AstNode* initializer);
-AstNode* create_array_node(int size, AstNode** elements);
+AstNode* create_array_node(char* name, char* type, int size, AstNode** elements);
+AstNode* create_list_node(char* name, char* type, int size, AstNode** elements);
+AstNode* create_tuple_node(char* name, int size, AstNode** elements);
+AstNode* create_set_node(char* name, char* type, int size, AstNode** elements);
+AstNode* create_map_node(char* name, char* type, int size, AstNode** elements);
 AstNode* create_return_node();
 AstNode* create_expr_node(AstNode* expression);
 AstNode* create_assign_node();
