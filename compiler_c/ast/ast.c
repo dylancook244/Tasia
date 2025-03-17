@@ -169,8 +169,9 @@ AstNode* create_array_node(char* name, char* type, int size, AstNode** elements)
     array->name = name;
     array->type = type;
     array->list.count = size;
-
     array->list.elements = elements; // Elements could be an array of nulls or of expressions. We don't care here, either way.
+
+    // TODO: the commented section can be moved to parser.
 
     // We have two ways to declare/initialize an array:
     //      1. {}string my_str = array{"hey", "there", ...} - size is inferred
@@ -202,9 +203,13 @@ AstNode* create_array_node(char* name, char* type, int size, AstNode** elements)
     return (AstNode*)array;
 }
 
-AstNode* create_list_node(char* name, char* type, int capacity, AstNode** elements) {
+AstNode* create_list_node(char* name, char* type, int capacity, AstNode** elements, int elements_count) {
     if (capacity < 0) {
         printf("ERROR: Invalid list capacity: %d", capacity);
+        return NULL;
+    }
+    if (capacity < elements_count) {
+        printf("ERROR: Too many elements (supplied: %d) supplied to list (capacity: %d)", elements_count, capacity);
         return NULL;
     }
 
@@ -215,10 +220,12 @@ AstNode* create_list_node(char* name, char* type, int capacity, AstNode** elemen
     new_list->name = name;
     new_list->type = type;
     new_list->list.capacity = capacity;
-
+    new_list->list.count = elements_count;
     new_list->list.elements = elements;
 
-    // Number of elements provided
+    // TODO: the commented section can be moved to parser.
+
+    // Number of elements provided (REDUNDANT AFTER )
     // int size_elements = sizeof(elements) / sizeof(elements[0]);
 
     // Find out how many elements have been supplied.
@@ -264,31 +271,59 @@ AstNode* create_tuple_node(char* name, int size, AstNode** elements) {
     return (AstNode*)tuple;
 }
 
-AstNode* create_set_node(char* name, int size, AstNode** elements) {
-    if (size <= 0) {
-        printf("ERROR: Invalid tuple size: %d", size);
+AstNode* create_set_node(char* name, char* type, int capacity, AstNode** elements, int elements_count) {
+    if (capacity <= 0) {
+        printf("ERROR: Invalid tuple capacity: %d", capacity);
         return NULL;
     }
-    SetDeclNode* tuple = malloc(sizeof(SetDeclNode));
+    if (capacity < elements_count) {
+        printf("ERROR: Too many elements (supplied: %d) supplied to set (capacity: %d)", elements_count, capacity);
+        return NULL;
+    }
 
-    
+    SetDeclNode* set = malloc(sizeof(SetDeclNode));
 
-    return (AstNode*)tuple;
+    set->name = name;
+    set->type = type;
+    set->list.capacity = capacity;
+    set->list.count = elements_count;
+
+    // Hash provided elements into our set
+    for (int i = 0; i < elements_count; i++) {
+        AstNode* key = elements[i];
+
+        // TODO: Implement hash function for int. Strings must be turned into ints: https://stackoverflow.com/a/2624210
+        set->list.elements[hash(key)] = true;
+    }
+
+    return (AstNode*)set;
 }
 
-AstNode* create_map_node(char* name, int size, AstNode** elements) {
-    if (size <= 0) {
-        printf("ERROR: Invalid map size: %d", size);
+AstNode* create_map_node(char* name, char* key_type, char* value_type, int capacity, AstNode*** elements, int elements_count) {
+    if (capacity != NULL && capacity <= 0) {
+        printf("ERROR: Invalid map capacity: %d", capacity);
         return NULL;
     }
-    MapDeclNode* tuple = malloc(sizeof(MapDeclNode));
+    MapDeclNode* map = malloc(sizeof(MapDeclNode));
 
-    tuple->base.type = NODE_TUPLE_DECL;
-    tuple->name = name;
-    tuple->list.elements = elements;
-    tuple->list.count = size;
+    map->base.type = NODE_MAP_DECL;
+    map->name = name;
+    map->key_type = key_type;
+    map->value_type = value_type;
+    map->load_factor = 0.75; // Load factor. Double array size when load factor =< count/capacity.
+    map->list.capacity = capacity;
+    map->list.count = elements_count;
 
-    return (AstNode*)tuple;
+    // Hash provided elements into our map
+    for (int i = 0; i < elements_count; i++) {
+        AstNode* key = elements[i][0];
+        AstNode* value = elements[i][1];
+
+        // TODO: Implement hash function for int. Strings must be turned into ints: https://stackoverflow.com/a/2624210
+        map->list.elements[hash(key)] = value;
+    }
+
+    return (AstNode*)map;
 }
 
 AstNode* create_expr_node(AstNode* expression) {

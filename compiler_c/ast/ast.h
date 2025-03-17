@@ -121,7 +121,8 @@ typedef struct {
 typedef struct {
     AstNode base;
     char* name;
-    char* type;
+    char* key_type;
+    char* value_type;
     float load_factor;
     // No strict types for tuple
     // TODO: DYLAN! Could just be ListDeclNode* list, since it has the same functionality and data, and every other language does it this way (I think)
@@ -195,10 +196,10 @@ AstNode* create_func_node(char* name, char* return_type);
 AstNode* create_block_node();
 AstNode* create_var_node(char* name, char* type, AstNode* initializer);
 AstNode* create_array_node(char* name, char* type, int size, AstNode** elements);
-AstNode* create_list_node(char* name, char* type, int size, AstNode** elements);
+AstNode* create_list_node(char* name, char* type, int size, AstNode** elements, int elements_count);
 AstNode* create_tuple_node(char* name, int size, AstNode** elements);
-AstNode* create_set_node(char* name, char* type, int size, AstNode** elements);
-AstNode* create_map_node(char* name, char* type, int size, AstNode** elements);
+AstNode* create_set_node(char* name, char* type, int capacity, AstNode** elements, int elements_count);
+AstNode* create_map_node(char* name, char* key_type, char* value_type, int size, AstNode*** elements);
 AstNode* create_return_node();
 AstNode* create_expr_node(AstNode* expression);
 AstNode* create_assign_node();
