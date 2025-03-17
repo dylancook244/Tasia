@@ -62,6 +62,7 @@ typedef struct {
         int int_value;
         float float_value;
         char* string_value;
+        char char_value;
         bool bool_value;
     } value;
 } Token;

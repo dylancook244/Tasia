@@ -10,6 +10,7 @@
 
 #include "parser/parser.h"
 #include "scanner/scanner.h"
+#include "ast/ast.h"
 
 void compile(char* filepath) {
     printf("\nI'm getting the path %s", filepath);
@@ -17,22 +18,22 @@ void compile(char* filepath) {
     // make scanner
     Scanner* scanner = init_scanner(filepath);
 
-    // void for now, prints output
-    parseProgram(scanner);
+    AstNode* ast = parse_program(scanner);
+
+    printf("\n\n=== AST DUMP ===\n");
+    dump_ast(ast, 0);
     
     // clean up
     free_scanner(scanner);
 
-    // loose structuring as we go through
+    // generate code from ast into a file
+    // generate_code(ast, output_file);
 
-    // get our filepath to our parser,
-    // uses file contents and scanner to make ast
-    // return pointer to ast, entire ast is heap allocated
+    // Free ast
+    free_ast_node(ast);
 
-    // use ast, parse down the tree to make llvm ir in codegen
-    
-    // run through codegen, llvm ir, object file, executable file,
-    // then finally free the ast in memory.
+    // Free Symbol Table
+    // free_symbol_table()
 }
 
 char* get_full_path(char* filename) {
