@@ -15,46 +15,47 @@ git clone https://github.com/dylancook244/tasia.git
 cd tasia
 
 # Check for LLVM and install if needed
-if ! command -v llvm-config &> /dev/null; then
-    echo "LLVM development files not found. Installing LLVM..."
-    if [[ "$OS" == "Darwin" ]]; then
-        # macOS
+if [[ "$OS" == "Darwin" ]]; then
+    # macOS
+    # Check if LLVM is installed
+    if brew list llvm &>/dev/null; then
+        echo "LLVM is already installed through Homebrew"
+    else
+        echo "Installing LLVM through Homebrew..."
         brew install llvm
-        
-        # Get LLVM path from Homebrew
-        BREW_LLVM_PATH=$(brew --prefix llvm)
-        echo "LLVM installed at: $BREW_LLVM_PATH"
-        
-        # Add LLVM to the PATH for this session
-        export PATH="$BREW_LLVM_PATH/bin:$PATH"
-    elif [[ "$OS" == "Linux" ]]; then
-        # Linux (Ubuntu/Debian assumed)
-        sudo apt-get update
-        sudo apt-get install -y llvm llvm-dev
     fi
+    
+    # Get the actual LLVM path from Homebrew
+    BREW_LLVM_PATH=$(brew --prefix llvm)
+    echo "LLVM is installed at: $BREW_LLVM_PATH"
+    
+    # Create or update the Makefile to use the right paths
+    echo "Updating Makefile to use correct LLVM paths..."
+    cd compiler
+    cat > Makefile.local << EOF
+# LLVM configuration specifically for this machine
+LLVM_CFLAGS = -I${BREW_LLVM_PATH}/include
+LLVM_LDFLAGS = -L${BREW_LLVM_PATH}/lib
+LLVM_LIBS = -lLLVM
+EOF
+    
+    # Build and install Tasia
+    echo "Building and installing Tasia..."
+    make clean
+    make -f Makefile.local install
+elif [[ "$OS" == "Linux" ]]; then
+    # Linux (Ubuntu/Debian assumed)
+    sudo apt-get update
+    sudo apt-get install -y llvm llvm-dev clang
+    
+    # Navigate to the compiler directory
+    cd compiler
+    
+    # Build and install Tasia
+    echo "Building and installing Tasia..."
+    make clean
+    make install
 fi
-
-# Check for required C compiler
-if ! command -v clang &> /dev/null; then
-    echo "Clang not found. Installing Clang..."
-    if [[ "$OS" == "Darwin" ]]; then
-        # macOS - should already have clang via Xcode tools
-        xcode-select --install
-    elif [[ "$OS" == "Linux" ]]; then
-        # Linux
-        sudo apt-get update
-        sudo apt-get install -y clang
-    fi
-fi
-
-# Navigate to the compiler directory
-echo "Navigating to compiler directory..."
-cd compiler
-
-# Build and install Tasia
-echo "Building and installing Tasia..."
-make clean
-make install
 
 # Clean up the repository
 echo "Cleaning up temporary files..."
