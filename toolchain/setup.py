@@ -1,16 +1,17 @@
+# setup.py for development
 from setuptools import setup, find_packages
 
 setup(
     name="tasia",
     version="0.1.0",
     packages=find_packages(),
-    py_modules=["tasia"],
+    include_package_data=True,
+    package_data={
+        'tasia': ['compiler/**/*'],  # Include all compiler files
+    },
     entry_points={
         'console_scripts': [
-            'tasia=tasia:main',  # Points to the main() function in tasia.py
+            'tasia=tasia.tasia:main',
         ],
     },
-    author="Dylan Cook",
-    description="The Tasia Programming Language CLI",
-    # Add other metadata as needed
 )

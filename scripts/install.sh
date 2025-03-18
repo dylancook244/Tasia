@@ -2,39 +2,57 @@
 
 # Detect OS
 OS="$(uname -s)"
-ARCH="$(uname -m)"
+echo "Installing Tasia for $OS..."
 
-# Set download URL based on platform
-if [[ "$OS" == "Darwin" ]]; then
-  PLATFORM="macOS"
-elif [[ "$OS" == "Linux" ]]; then
-  PLATFORM="Linux"
-else
-  echo "Unsupported operating system: $OS"
-  exit 1
+# Create a temporary directory for installation
+TEMP_DIR=$(mktemp -d)
+echo "Using temporary directory: $TEMP_DIR"
+cd "$TEMP_DIR"
+
+# Clone the repository
+echo "Cloning the Tasia repository..."
+git clone https://github.com/dylancook244/tasia.git
+cd tasia
+
+# Check for LLVM and install if needed
+if ! command -v llvm-config &> /dev/null; then
+    echo "LLVM development files not found. Installing LLVM..."
+    if [[ "$OS" == "Darwin" ]]; then
+        # macOS
+        brew install llvm
+        export PATH="/usr/local/opt/llvm/bin:$PATH"
+    elif [[ "$OS" == "Linux" ]]; then
+        # Linux (Ubuntu/Debian assumed)
+        sudo apt-get update
+        sudo apt-get install -y llvm llvm-dev
+    fi
 fi
 
-echo "Installing Tasia for $PLATFORM ($ARCH)..."
-
-# Create installation directory
-INSTALL_DIR="/usr/local/bin"
-if [[ ! -d "$INSTALL_DIR" ]]; then
-  echo "Creating installation directory..."
-  sudo mkdir -p "$INSTALL_DIR"
+# Check for required C compiler
+if ! command -v clang &> /dev/null; then
+    echo "Clang not found. Installing Clang..."
+    if [[ "$OS" == "Darwin" ]]; then
+        # macOS - should already have clang via Xcode tools
+        xcode-select --install
+    elif [[ "$OS" == "Linux" ]]; then
+        # Linux
+        sudo apt-get update
+        sudo apt-get install -y clang
+    fi
 fi
 
-# Download the appropriate binary
-DOWNLOAD_URL="https://github.com/dylancook244/tasia/releases/download/v0.0.0/tasia-$PLATFORM"
-curl -L "$DOWNLOAD_URL" -o tasia
+# Navigate to the compiler directory
+echo "Navigating to compiler directory..."
+cd compiler
 
-# Make it executable
-chmod +x tasia
+# Build and install Tasia
+echo "Building and installing Tasia..."
+make install
 
-# Move to installation directory
-echo "Installing Tasia to $INSTALL_DIR..."
-sudo mv tasia "$INSTALL_DIR/"
+# Clean up the repository
+echo "Cleaning up temporary files..."
+cd "$TEMP_DIR"
+rm -rf tasia
 
-# Print success message and instructions
-echo "Tasia installed successfully!"
-echo "You can now use Tasia by running the 'tasia' command."
-echo "Try 'tasia help' to get started."
+echo "Tasia has been successfully installed!"
+echo "You can now use the 'tasia' command to compile Tasia programs."

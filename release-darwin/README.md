@@ -15,7 +15,7 @@ Currently still in development, not all features added yet.
 
 **Mac/Linux**
 ```bash
-curl -sSf https://raw.githubusercontent.com/dylancook244/tasia/production/scripts/install.sh | bash
+curl -sSf https://raw.githubusercontent.com/dylancook244/tasia/production/scripts/install.sh | sh
 ```
 
 **Windows**
