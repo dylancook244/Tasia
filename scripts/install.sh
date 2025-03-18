@@ -20,7 +20,13 @@ if ! command -v llvm-config &> /dev/null; then
     if [[ "$OS" == "Darwin" ]]; then
         # macOS
         brew install llvm
-        export PATH="/usr/local/opt/llvm/bin:$PATH"
+        
+        # Get LLVM path from Homebrew
+        BREW_LLVM_PATH=$(brew --prefix llvm)
+        echo "LLVM installed at: $BREW_LLVM_PATH"
+        
+        # Add LLVM to the PATH for this session
+        export PATH="$BREW_LLVM_PATH/bin:$PATH"
     elif [[ "$OS" == "Linux" ]]; then
         # Linux (Ubuntu/Debian assumed)
         sudo apt-get update
@@ -47,6 +53,7 @@ cd compiler
 
 # Build and install Tasia
 echo "Building and installing Tasia..."
+make clean
 make install
 
 # Clean up the repository

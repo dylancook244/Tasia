@@ -7,14 +7,37 @@ ifeq ($(OS),Darwin)
     # macOS
     INSTALL_DIR = /usr/local/bin
     SUDO = sudo
+    
+    # Homebrew LLVM location for Apple Silicon Macs
+    BREW_LLVM_PATH = /opt/homebrew/opt/llvm
+    
+    # If the path doesn't exist, fall back to Intel Mac path
+    ifeq ($(wildcard $(BREW_LLVM_PATH)),)
+        BREW_LLVM_PATH = /usr/local/opt/llvm
+    endif
+    
+    # LLVM configuration for macOS
+    LLVM_CONFIG = $(BREW_LLVM_PATH)/bin/llvm-config
+    LLVM_CFLAGS = -I$(BREW_LLVM_PATH)/include
+    LLVM_LDFLAGS = -L$(BREW_LLVM_PATH)/lib
+    LLVM_LIBS = $(shell $(LLVM_CONFIG) --libs core analysis bitwriter 2>/dev/null || echo "-lLLVM")
+    
 else ifeq ($(OS),Linux)
     # Linux
     INSTALL_DIR = /usr/bin
     SUDO = sudo
+    LLVM_CONFIG = llvm-config
+    LLVM_CFLAGS = $(shell $(LLVM_CONFIG) --cflags 2>/dev/null)
+    LLVM_LDFLAGS = $(shell $(LLVM_CONFIG) --ldflags --system-libs 2>/dev/null)
+    LLVM_LIBS = $(shell $(LLVM_CONFIG) --libs core analysis bitwriter 2>/dev/null)
 else
     # Windows
     INSTALL_DIR = C:/Program Files/tasia/bin
     SUDO =
+    LLVM_CONFIG = llvm-config
+    LLVM_CFLAGS = $(shell $(LLVM_CONFIG) --cflags 2>/dev/null)
+    LLVM_LDFLAGS = $(shell $(LLVM_CONFIG) --ldflags --system-libs 2>/dev/null)
+    LLVM_LIBS = $(shell $(LLVM_CONFIG) --libs core analysis bitwriter 2>/dev/null)
 endif
 
 # Dynamic compiler detection
@@ -25,22 +48,6 @@ else
     EXE_EXT =
 endif
 
-# LLVM configuration
-ifeq ($(OS),Darwin)
-    # macOS - homebrew typically installs LLVM in a non-standard location
-    LLVM_CONFIG = $(shell which llvm-config 2>/dev/null || echo /usr/local/opt/llvm/bin/llvm-config)
-else ifeq ($(OS),Linux)
-    LLVM_CONFIG = llvm-config
-else
-    # Windows
-    LLVM_CONFIG = llvm-config
-endif
-
-# Get compiler and linker flags from llvm-config
-LLVM_CFLAGS = $(shell $(LLVM_CONFIG) --cflags 2>/dev/null || echo "-I/usr/local/include")
-LLVM_LDFLAGS = $(shell $(LLVM_CONFIG) --ldflags --system-libs 2>/dev/null || echo "-L/usr/local/lib")
-LLVM_LIBS = $(shell $(LLVM_CONFIG) --libs core analysis bitwriter 2>/dev/null || echo "-lLLVM")
-
 # Source files
 ifeq ($(OS),Windows)
     SOURCES := $(shell dir /s /b *.c 2>NUL)
@@ -48,7 +55,7 @@ else
     SOURCES := $(shell find . -name "*.c")
 endif
 
-# Compiler flags - add -static for fully static builds if desired
+# Compiler flags
 CFLAGS = -std=c11 -g -O2 $(LLVM_CFLAGS)
 
 # Target name
