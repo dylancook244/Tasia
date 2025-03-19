@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "compile.h"
 
@@ -11,7 +12,23 @@ void help_cli() {
 int cli(char* command, char* filepath) {
 
     if (strcmp(command, "build") == 0) {
-        compile(filepath);
+        char* executable_file =  compile(filepath);
+
+        if (executable_file == NULL) {
+            return 1;
+        }
+
+        return 0;
+
+    } else if (strcmp(command, "run") == 0) {
+        char* executable_file =  compile(filepath);
+
+        if (executable_file == NULL) {
+            return 1;
+        }
+
+        system(executable_file);
+
         return 0;
 
     } else if (strcmp(command, "help") == 0) {

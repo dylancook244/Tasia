@@ -61,7 +61,47 @@ bool write_runner_to_file(const char* path) {
     return true;
 }
 
-void compile(char* filepath) {
+// return executable file just in case user used "run" cli argument
+// also delete the linker and object file the compilation created
+char* cleanup_build(char* filepath) {
+    static char executable_buf[1024];
+    strcpy(executable_buf, filepath);
+    int length = strlen(executable_buf);
+
+    static char object_buf[1024];
+    strcpy(object_buf, filepath);
+    static char linker_buf[1024];
+    strcpy(linker_buf, filepath);
+
+    // remove sia
+    char* object = "o";
+    char* linker = "ll";
+
+    object_buf[length - 3] = '\0';
+    linker_buf[length - 3] = '\0';
+
+    // add o for object or ll for linker
+    strcat(object_buf, object);
+    strcat(linker_buf, linker);
+
+    // finally remove linker and object files
+    remove(object_buf);
+    remove(linker_buf);
+
+    // Remove the last 4 characters
+    executable_buf[length - 4] = '\0';
+
+    // if it's a windows system, add .exe
+#ifdef _WIN32
+    char* exe_str = ".exe";
+    strcpy(executable_buf, exe_str);
+#endif
+
+    return executable_buf;
+
+}
+
+char* compile(char* filepath) {
     printf("\nCompiling %s", filepath);
 
     // Initialize scanner
@@ -81,7 +121,7 @@ void compile(char* filepath) {
         free_ast_node(ast);
         free_symbol_table(symbol_table);
         free_scanner(scanner);
-        return;
+        return NULL;
     }
     
     // Generate output filenames
@@ -116,7 +156,7 @@ void compile(char* filepath) {
     
     if (!write_runner_to_file(temp_runner)) {
         printf("Failed to create runner file\n");
-        return;
+        return NULL;
     }
     
     // Link object file with runner to create executable
@@ -139,4 +179,7 @@ void compile(char* filepath) {
     free_scanner(scanner);
     free_ast_node(ast);
     free_symbol_table(symbol_table);
+    char* executable_file = cleanup_build(filepath);
+    return executable_file;
 }
+
