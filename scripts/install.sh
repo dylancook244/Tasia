@@ -39,7 +39,7 @@ if [[ "$OS" == "Darwin" ]]; then
     echo "Compiling Tasia..."
     clang -std=c11 -g -O2 -I${BREW_LLVM_PATH}/include $SOURCES -o tasia -L${BREW_LLVM_PATH}/lib -lLLVM
     
-    if [ $? -eq 0 ]; then
+    if [ $? == 0 ]; then
         echo "Compilation successful! Installing Tasia..."
         sudo mkdir -p /usr/local/bin
         sudo cp tasia /usr/local/bin/

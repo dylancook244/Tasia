@@ -1,7 +1,7 @@
 import sys
 
 def main():
-    from toolchain.utils.cli import cli_commands
+    from toolchain_unused.utils.cli import cli_commands
     return cli_commands()
 
 if __name__ == "__main__":
