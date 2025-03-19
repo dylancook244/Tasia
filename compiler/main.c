@@ -11,7 +11,7 @@
 
 char* get_full_path(char* filename) {
     // allocate space on stack for current working directory
-    static char cwd[1024];
+    char cwd[1024];
 
     // allocate space on stack for full filepath
     static char filepath[1024];
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
 
     if (argc < 2) {
         printf("please enter an argument for tasia\n");
-        printf("Usage: tasia <command> <file>");
+        printf("Usage: tasia <command> <file>\n");
         return 1;
     }
 

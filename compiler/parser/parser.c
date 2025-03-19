@@ -435,8 +435,7 @@ AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
         free_token(assign_token);
         
         // Parse the initializer expression
-        Token* next = getNextToken(scanner);
-        initializer = parse_expression(scanner, next);
+        initializer = parse_expr(scanner, 0);
         
         if (!initializer) {
             printf("Error: Invalid initializer expression\n");
@@ -451,79 +450,6 @@ AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
     
     // Create the variable declaration node
     return create_var_node(name, type, initializer);
-}
-
-AstNode* parse_expression(Scanner* scanner, Token* token) {
-    // First parse the primary expression
-    AstNode* expr = parse_primary_expr(scanner, token);
-    
-    if (!expr) {
-        return NULL;
-    }
-    
-    // Then check for binary operators
-    Token* next = getNextToken(scanner);
-    
-    // If it's a binary operator, parse it as a binary expression
-    if (is_binary_operator(next->type)) {
-        // Put the token back
-        ungetToken(scanner, next);
-        
-        // Parse as a binary expression
-        return parse_binary_expr(scanner, expr, 0);
-    } 
-    // Special handling for assignment if you're not treating it as a binary operator
-    else if (next->type == ASSIGN) {
-        free_token(next);
-        
-        // Ensure left side is a valid assignment target
-        if (expr->type != NODE_IDENT_EXPR) {
-            printf("Error: Left side of assignment must be an identifier\n");
-            free_ast_node(expr);
-            return NULL;
-        }
-        
-        // Create assignment node
-        AssignExprNode* assign = (AssignExprNode*)create_assign_node();
-        assign->target = expr;
-        
-        // Parse right side
-        Token* right_token = getNextToken(scanner);
-        assign->value = parse_expression(scanner, right_token);
-        
-        if (!assign->value) {
-            printf("Error: Invalid right side in assignment\n");
-            free_ast_node((AstNode*)assign);
-            return NULL;
-        }
-        
-        return (AstNode*)assign;
-    }
-    // Function call
-    else if (next->type == LPAREN && expr->type == NODE_IDENT_EXPR) {
-        // Put the token back
-        ungetToken(scanner, next);
-        
-        // Parse as a function call
-        return parse_call_expr(scanner, expr);
-    }
-    // // Array indexing
-    // else if (next->type == LBRACKET) {
-    //     // Handle array indexing
-    //     // ...
-    // }
-    // // Member access
-    // else if (next->type == DOT) {
-    //     // Handle member access
-    //     // ...
-    // }
-    else {
-        // Put the token back - it's not part of this expression
-        ungetToken(scanner, next);
-        
-        // Just return the primary expression
-        return expr;
-    }
 }
 
 AstNode* parse_return_stmt(Scanner* scanner) {
@@ -541,7 +467,8 @@ AstNode* parse_return_stmt(Scanner* scanner) {
     
     // If next token isn't a statement terminator, it's a return value
     if (token->type != END_OF_LINE && token->type != RBRACE) {
-        ret_stmt->value = parse_expression(scanner, token);
+        ungetToken(scanner, token);  // Put the token back
+        ret_stmt->value = parse_expr(scanner, 0);
         
         if (!ret_stmt->value) {
             printf("Error: Invalid return value expression\n");
@@ -558,10 +485,11 @@ AstNode* parse_return_stmt(Scanner* scanner) {
 
 AstNode* parse_expr_stmt(Scanner* scanner, Token* token) {
     // Parse the expression
-    AstNode* expr = parse_expression(scanner, token);
+    ungetToken(scanner, token);  // Put the token back
+    AstNode* expr = parse_expr(scanner, 0);
     
     if (!expr) {
-        return NULL;  // Error already printed in parse_expression
+        return NULL;  // Error already printed in parse_expr
     }
     
     // Create an expression statement node
@@ -585,6 +513,20 @@ AstNode* parse_expr_stmt(Scanner* scanner, Token* token) {
     return (AstNode*)stmt;
 }
 
+// Helper function to get operator precedence
+Precedence get_precedence(TokenType type) {
+    switch (type) {
+        case MULTIPLY: case QUOTIENT:
+            return (Precedence){10, 11};
+        case ADD: case SUBTRACT:
+            return (Precedence){8, 9};
+        case ASSIGN:
+            return (Precedence){2, 1};
+        default:
+            return (Precedence){0, 0}; // not an operator
+    }
+}
+
 void ungetToken(Scanner* scanner, Token* token) {
     if (scanner->has_buffered_token) {
         // If already have a buffered token, free it
@@ -595,93 +537,6 @@ void ungetToken(Scanner* scanner, Token* token) {
     scanner->has_buffered_token = true;
 }
 
-// Helper function to get operator precedence
-int get_operator_precedence(TokenType op) {
-    switch (op) {
-        case MULTIPLY:
-        case QUOTIENT:
-            return 5;
-        case ADD:
-        case SUBTRACT:
-            return 4;
-        case ASSIGN:
-            return 0;
-        default:
-            return -1;  // Not an operator
-    }
-}
-
-AstNode* parse_binary_expr(Scanner* scanner, AstNode* left, int min_precedence) {
-    // Look ahead at the next token
-    Token* op_token = getNextToken(scanner);
-    
-    // Keep parsing binary expressions as long as we see operators
-    // with at least the minimum precedence
-    while (is_binary_operator(op_token->type) && 
-           get_operator_precedence(op_token->type) >= min_precedence) {
-        
-        TokenType op = op_token->type;
-        int precedence = get_operator_precedence(op);
-        free_token(op_token);
-        
-        // Special handling for assignment operator
-        if (op == ASSIGN && left->type != NODE_IDENT_EXPR) {
-            printf("Error: Left side of assignment must be an identifier\n");
-            free_ast_node(left);
-            return NULL;
-        }
-        
-        // Parse the right operand, which could be another binary expression
-        Token* right_token = getNextToken(scanner);
-        AstNode* right = parse_primary_expr(scanner, right_token);
-        
-        if (!right) {
-            free_ast_node(left);
-            return NULL;
-        }
-        
-        // Look ahead at the next token
-        op_token = getNextToken(scanner);
-        
-        // If the next token is an operator with higher precedence,
-        // recursively parse that binary expression first
-        while (is_binary_operator(op_token->type) && 
-               get_operator_precedence(op_token->type) > precedence) {
-            
-            // Put back the operator token
-            ungetToken(scanner, op_token);
-            
-            // Parse the higher precedence expression
-            right = parse_binary_expr(scanner, right, precedence + 1);
-            
-            if (!right) {
-                free_ast_node(left);
-                return NULL;
-            }
-            
-            // Get the next token
-            op_token = getNextToken(scanner);
-        }
-        
-        // Create a binary expression node for the current operator
-        if (op == ASSIGN) {
-            // Create assignment node
-            AssignExprNode* assign = (AssignExprNode*)create_assign_node();
-            assign->target = left;
-            assign->value = right;
-            left = (AstNode*)assign;
-        } else {
-            // Create binary operation node
-            left = create_binexpr_node(left, op, right);
-        }
-    }
-    
-    // Put back the token that's not part of this binary expression
-    ungetToken(scanner, op_token);
-    
-    return left;
-}
-
 // Helper to check if a token type is a binary operator
 bool is_binary_operator(TokenType type) {
     return type == ADD || type == SUBTRACT || 
@@ -689,110 +544,113 @@ bool is_binary_operator(TokenType type) {
            type == ASSIGN;
 }
 
-AstNode* parse_primary_expr(Scanner* scanner, Token* token) {
-    switch (token->type) {
-        case INT_LITERAL:
-        case FLOAT_LITERAL:
-        case CHAR_LITERAL:
-        case STRING_LITERAL:
-        case BOOL_LITERAL:
-            return parse_literal_expr(scanner, token);
+AstNode* parse_expr(Scanner* scanner, int min_bp) {
+    Token* token = getNextToken(scanner);
+    
+    AstNode* left;
+    
+    // Handle prefix expressions (literals, variables, etc.)
+    switch(token->type) {
+        case INT_LITERAL: case FLOAT_LITERAL: case CHAR_LITERAL:
+        case STRING_LITERAL: case BOOL_LITERAL:
+            left = create_literal_node(token);
+            break;
             
-        case IDENT:
-            return parse_ident_expr(scanner, token);
-            
-        case LPAREN: {
-            // Parenthesized expression
+        case IDENT: {
+            char* name = my_strdup(token->raw_text);
             free_token(token);
             
-            // Parse the inner expression
-            Token* expr_token = getNextToken(scanner);
-            AstNode* expr = parse_expression(scanner, expr_token);
-            
-            if (!expr) {
-                return NULL;
+            // Check if it's a function call
+            token = getNextToken(scanner);
+            if (token->type == LPAREN) {
+                free_token(token);
+                left = parse_call_args(scanner, name);
+            } else {
+                ungetToken(scanner, token);
+                left = create_ident_node(name);
             }
-            
-            // Expect closing parenthesis
-            Token* rparen = getNextToken(scanner);
-            if (rparen->type != RPAREN) {
-                printf("Error: Expected ')' after expression, got %s\n", 
-                       token_type_to_string(rparen->type));
-                free_token(rparen);
-                free_ast_node(expr);
-                return NULL;
-            }
-            free_token(rparen);
-            
-            return expr;
+            break;
         }
         
+        case LPAREN:
+            free_token(token);
+            left = parse_expr(scanner, 0);
+            token = getNextToken(scanner);
+            if (token->type != RPAREN) {
+                printf("Error: Expected closing parenthesis, got %s\n", 
+                       token_type_to_string(token->type));
+                free_token(token);
+                free_ast_node(left);
+                return NULL;
+            }
+            free_token(token);
+            break;
+            
         default:
             printf("Error: Unexpected token in expression: %s\n", 
                    token_type_to_string(token->type));
             free_token(token);
             return NULL;
     }
-}
-
-AstNode* parse_literal_expr(Scanner* scanner, Token* token) {
-    // Create a literal node from the token
-    AstNode* node = create_literal_node(token);
     
-    // Token is consumed by create_literal_node
-    
-    return node;
-}
-
-AstNode* parse_ident_expr(Scanner* scanner, Token* token) {
-    // Save the identifier name
-    char* name = my_strdup(token->raw_text);
-    free_token(token);
-    
-    // Look ahead to see what follows
-    Token* next = getNextToken(scanner);
-    
-    if (next->type == LPAREN) {
-        // Function call
-        free_token(next);
+    // Now handle infix expressions (binary operations)
+    while (1) {
+        token = getNextToken(scanner);
         
-        // Create an identifier node for the function name
-        AstNode* func_ident = create_ident_node(name);
+        // If token is not an operator or binding power is too low, break
+        if (!is_binary_operator(token->type)) {
+            ungetToken(scanner, token);
+            break;
+        }
         
-        // Parse the function call
-        return parse_call_expr(scanner, func_ident);
-    } else {
-        // Simple variable reference
-        ungetToken(scanner, next);
-        return create_ident_node(name);
-    }
-}
-
-AstNode* parse_call_expr(Scanner* scanner, AstNode* function) {
-    // Create a call expression node
-    CallExprNode* call = (CallExprNode*)create_call_node(function);
-    
-    // Parse arguments
-    Token* token = getNextToken(scanner);
-    
-    // Check if there are any arguments
-    if (token->type == RPAREN) {
-        // No arguments
+        Precedence p = get_precedence(token->type);
+        if (p.left_bp < min_bp) {
+            ungetToken(scanner, token);
+            break;
+        }
+        
+        TokenType op = token->type;
         free_token(token);
-        return (AstNode*)call;
+        
+        AstNode* right = parse_expr(scanner, p.right_bp);
+        if (!right) {
+            free_ast_node(left);
+            return NULL;
+        }
+        
+        left = create_binexpr_node(left, op, right);
     }
     
-    // We have at least one argument
+    return left;
+}
+
+// Helper for parsing function call arguments
+AstNode* parse_call_args(Scanner* scanner, char* func_name) {
+    // Create an identifier node for the function name
+    AstNode* func_ident = create_ident_node(func_name);
+    
+    // Create a call expression node
+    CallExprNode* call = (CallExprNode*)create_call_node(func_ident);
+    
+    // Prepare to collect arguments
     int capacity = 4;
     call->arguments = malloc(sizeof(AstNode*) * capacity);
     
     if (!call->arguments) {
         printf("Error: Memory allocation failed\n");
         free_ast_node((AstNode*)call);
-        free_token(token);
         return NULL;
     }
     
+    // Check for empty argument list
+    Token* token = getNextToken(scanner);
+    if (token->type == RPAREN) {
+        // No arguments
+        free_token(token);
+        return (AstNode*)call;
+    }
+    
+    // Parse arguments
     do {
         // If we've already processed some arguments,
         // token is a comma, so get the next token
@@ -802,7 +660,8 @@ AstNode* parse_call_expr(Scanner* scanner, AstNode* function) {
         }
         
         // Parse the argument expression
-        AstNode* arg = parse_expression(scanner, token);
+        ungetToken(scanner, token);
+        AstNode* arg = parse_expr(scanner, 0);
         
         if (!arg) {
             printf("Error: Invalid function argument\n");
