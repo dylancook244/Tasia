@@ -51,8 +51,6 @@ typedef enum {
 typedef struct {
     TokenType type;
     char* raw_text;        // raw source text
-    int line;
-    int column;
     
     // holds the actual token value and info in case it's needed (ex: IDENT)
     union {

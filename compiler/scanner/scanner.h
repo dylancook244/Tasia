@@ -11,8 +11,11 @@ typedef struct {
     int column;
     const char* filename;
     
-    bool has_buffered_token;
-    Token* buffered_token;
+    // collects stream of tokens
+    Token** tokens;
+    int capacity; // size of array
+    int count; // num of tokens in array
+    int position; // position we're at in array
 } Scanner;
 
 // make the scanner
@@ -21,11 +24,16 @@ Scanner* init_scanner(const char* filepath);
 // advance characters
 char advance_char(Scanner* scanner);
 
+// tokenize
+Token* tokenize(Scanner* scanner);
+
 // get next token
+// sometimes we need a chunk of tokens so we increment without the
+// pointer and then return back to the pointer
 Token* getNextToken(Scanner* scanner);
 
-// unget token
-static void ungetToken(Scanner* scanner, Token* token);
+// delete current token, reset state as if that token never happened
+void goBackToken(Scanner* scanner); 
 
 // Scanner is heap allocated
 void free_scanner(Scanner* scanner);

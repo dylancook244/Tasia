@@ -1,4 +1,4 @@
-## Tasia - The Next Generation
+## Tasia - The Next Generation Programming Language
 
 **Mac/Linux**
 ```bash

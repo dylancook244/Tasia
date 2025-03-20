@@ -1,6 +1,13 @@
 # example.sia - A more complete Tasia example
 # This shows both functions and blocks
 
+func addit() {
+  c = a + b
+  return c
+}
+
 func main() {
-  123 + 93
+  my_ints = 123 + 93
+  return my_ints
+  add(a,b) 
 }

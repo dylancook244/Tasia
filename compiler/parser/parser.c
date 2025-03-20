@@ -56,13 +56,10 @@ AstNode* parse_program(Scanner* scanner) {
         // Process token
         printf("\nToken: %s, raw_text: '%s', Line: %d, Col: %d",
             token_type_to_string(token->type),
-            token->raw_text,
-            token->line,
-            token->column);
+            token->raw_text);
     
         // skip newlines
         if (token->type == END_OF_LINE) {
-            free_token(token);
             token = getNextToken(scanner);
             continue;
         }
@@ -82,44 +79,52 @@ AstNode* parse_program(Scanner* scanner) {
                 }
                 // Don't free the token here - it's already freed in parse_function
                 token = getNextToken(scanner);
-                continue;  // Skip the free_token below
+                continue;
             case COMMENT:
                 // Just skip comments at the top level
-                free_token(token);
                 token = getNextToken(scanner);
                 continue;
             // other cases... add later
             default: 
                 printf("Unexpected top level statement token: %s", token_type_to_string(token->type));
-                free_token(token);
                 token = getNextToken(scanner);
                 continue;
         }
-     
-        // Free the token - only tokens that fall through to here
-        free_token(token);
         
         // Get next token
         token = getNextToken(scanner);
     }
 
-    // free last EOF token
-    free_token(token);
     return (AstNode*)program;
+}
+
+void print_token_array(Scanner* scanner) {
+    printf("\n=== TOKEN ARRAY RAW TEXT ===\n");
+    printf("Count: %d, Position: %d\n", scanner->count, scanner->position);
+    
+    for (int i = 0; i < scanner->count; i++) {
+        Token* token = scanner->tokens[i];
+        if (token == NULL) {
+            printf("[%d]: NULL\n", i);
+        } else {
+            printf("[%d]: '%s'%s\n", 
+                   i,
+                   token->raw_text,
+                   (i == scanner->position - 1) ? " <- CURRENT" : "");
+        }
+    }
+    printf("=== END TOKEN ARRAY ===\n");
 }
 
 // this function is really long, 
 // partially due to a shit ton of crucial error messages
 AstNode* parse_function(Scanner* scanner, Token* func_token) {
-    // We already know it's a FUNC token
-    free_token(func_token);
     
     // Get function name
     Token* name_token = getNextToken(scanner);
 
     if (name_token->type != IDENT && name_token->type != MAIN) {
         printf("Error: Expected function name, got %s\n", token_type_to_string(name_token->type));
-        free_token(name_token);
         return NULL;
     }
     
@@ -128,30 +133,26 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
     char* func_name;
     if (name_token->type == MAIN || strcmp(name_token->raw_text, "main") == 0) {
         func_name = my_strdup("TASIA_ENTRY_FUNCTION");
-        printf("Renaming 'main' function to 'TASIA_ENTRY_FUNCTION'\n");
+        printf("\nRenaming 'main' function to 'TASIA_ENTRY_FUNCTION'\n");
     } else {
         // Otherwise use the name as-is
         func_name = my_strdup(name_token->raw_text);
     }
     
-    free_token(name_token);
     
     // Check for left parenthesis
     Token* lparen = getNextToken(scanner);
 
     // Skip any newlines before the opening brace
     while (lparen->type == END_OF_LINE) {
-        free_token(lparen);
         lparen = getNextToken(scanner);
     }
 
     if (lparen->type != LPAREN) {
         printf("Error: Expected '(' after function name, got %s\n", token_type_to_string(lparen->type));
         free(func_name);
-        free_token(lparen);
         return NULL;
     }
-    free_token(lparen);
     
     // Parse parameters
     int param_count = 0;
@@ -166,7 +167,6 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
             // If we've already read some parameters, we expect a type token
             // after a comma, so get the next token
             if (param_count > 0) {
-                free_token(token); // Free the comma
                 token = getNextToken(scanner);
             }
             
@@ -175,7 +175,6 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
                 token->type != CHAR && token->type != STRING && 
                 token->type != BOOL) {
                 printf("Error: Expected parameter type, got %s\n", token_type_to_string(token->type));
-                free_token(token);
                 // Free existing parameters
                 for (int i = 0; i < param_count; i++) {
                     free(param_names[i]);
@@ -189,14 +188,12 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
             
             // Save parameter type
             char* param_type = my_strdup(token->raw_text);
-            free_token(token);
             
             // Next token should be parameter name
             token = getNextToken(scanner);
             if (token->type != IDENT) {
                 printf("Error: Expected parameter name, got %s\n", token_type_to_string(token->type));
                 free(param_type);
-                free_token(token);
                 // Free existing parameters
                 for (int i = 0; i < param_count; i++) {
                     free(param_names[i]);
@@ -210,7 +207,6 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
             
             // Save parameter name
             char* param_name = my_strdup(token->raw_text);
-            free_token(token);
             
             // Add to parameter arrays
             param_count++;
@@ -226,7 +222,6 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
         // After parameters, we expect a right parenthesis
         if (token->type != RPAREN) {
             printf("Error: Expected ')' after parameters, got %s\n", token_type_to_string(token->type));
-            free_token(token);
             // Free parameters
             for (int i = 0; i < param_count; i++) {
                 free(param_names[i]);
@@ -239,14 +234,10 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
         }
     }
     
-    // Free the right parenthesis token
-    free_token(token);
-    
     // Check for return type (->)
     char* return_type = NULL;
     token = getNextToken(scanner);
     if (token->type == RETURN_VALUE) {
-        free_token(token);
         
         // Get the return type
         token = getNextToken(scanner);
@@ -254,7 +245,6 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
             token->type != CHAR && token->type != STRING && 
             token->type != BOOL) {
             printf("Error: Expected return type, got %s\n", token_type_to_string(token->type));
-            free_token(token);
             // Free parameters
             for (int i = 0; i < param_count; i++) {
                 free(param_names[i]);
@@ -267,7 +257,6 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
         }
         
         return_type = my_strdup(token->raw_text);
-        free_token(token);
         
         // Get next token
         token = getNextToken(scanner);
@@ -277,11 +266,8 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
     if (token->type != LBRACE) {
         printf("Error: Expected '{' for function body, got %s\n", 
             token_type_to_string(token->type));
-        free_token(token);
-        // Free other resources...
         return NULL;
     }
-    free_token(token);  // Free the opening brace token
     
     // Create the function node
     FuncDeclNode* func = (FuncDeclNode*)create_func_node(func_name, return_type);
@@ -322,9 +308,7 @@ AstNode* parse_block(Scanner* scanner) {
 
         // skip newlines
         if (token->type == END_OF_LINE) {
-            free_token(token);
             token = getNextToken(scanner);
-            continue;
         }
 
         // parse next statement in the function
@@ -355,14 +339,10 @@ AstNode* parse_block(Scanner* scanner) {
     // if end of file after function block
     if (token->type == END_OF_FILE) {
         printf("Error: Unexpected end of file, expected '}'\n");
-        free_token(token);
         free_ast_node((AstNode*)block);
         return NULL;
     }
-    
-    // Free the closing brace token
-    free_token(token);
-    
+        
     return (AstNode*)block;
 }
 
@@ -386,23 +366,17 @@ AstNode* parse_statement(Scanner* scanner, Token* token) {
             return parse_expr_stmt(scanner, token);
             
         case RETURN:
-            // This is a return statement
-            free_token(token);
             return parse_return_stmt(scanner);
             
         case LBRACE:
-            // This is a nested block
-            free_token(token);
             return parse_block(scanner);
             
         case IDENT:
-            // This could be an assignment or a function call
             return parse_expr_stmt(scanner, token);
             
         default:
             printf("Error: Unexpected token in statement: %s\n", 
                    token_type_to_string(token->type));
-            free_token(token);
             return NULL;
     }
 }
@@ -410,7 +384,6 @@ AstNode* parse_statement(Scanner* scanner, Token* token) {
 AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
     // Save the type
     char* type = my_strdup(type_token->raw_text);
-    free_token(type_token);
     
     // Get the variable name (should be an identifier)
     Token* name_token = getNextToken(scanner);
@@ -418,21 +391,17 @@ AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
         printf("Error: Expected variable name after type, got %s\n", 
               token_type_to_string(name_token->type));
         free(type);
-        free_token(name_token);
         return NULL;
     }
     
     // Save the name
     char* name = my_strdup(name_token->raw_text);
-    free_token(name_token);
-    
+
     // Check for assignment operator
     Token* assign_token = getNextToken(scanner);
     AstNode* initializer = NULL;
     
     if (assign_token->type == ASSIGN) {
-        // There's an initializer
-        free_token(assign_token);
         
         // Parse the initializer expression
         initializer = parse_expr(scanner, 0);
@@ -443,9 +412,6 @@ AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
             free(name);
             return NULL;
         }
-    } else {
-        // No assignment, so we put back the token we just read
-        free_token(assign_token);
     }
     
     // Create the variable declaration node
@@ -461,31 +427,14 @@ AstNode* parse_return_stmt(Scanner* scanner) {
     
     // Skip newlines in case there are any between return and the value
     while (token->type == END_OF_LINE) {
-        free_token(token);
         token = getNextToken(scanner);
-    }
-    
-    // If next token isn't a statement terminator, it's a return value
-    if (token->type != END_OF_LINE && token->type != RBRACE) {
-        ungetToken(scanner, token);  // Put the token back
-        ret_stmt->value = parse_expr(scanner, 0);
-        
-        if (!ret_stmt->value) {
-            printf("Error: Invalid return value expression\n");
-            free_ast_node((AstNode*)ret_stmt);
-            return NULL;
-        }
-    } else {
-        // No return value, put back the token we just read
-        ungetToken(scanner, token);  // Note: You'd need to implement this
     }
     
     return (AstNode*)ret_stmt;
 }
 
 AstNode* parse_expr_stmt(Scanner* scanner, Token* token) {
-    // Parse the expression
-    ungetToken(scanner, token);  // Put the token back
+    goBackToken(scanner);
     AstNode* expr = parse_expr(scanner, 0);
     
     if (!expr) {
@@ -497,17 +446,16 @@ AstNode* parse_expr_stmt(Scanner* scanner, Token* token) {
     
     // Check for statement terminator (line end, semicolon, etc.)
     Token* term = getNextToken(scanner);
+    goBackToken(scanner);  // Put it back immediately
     
     if (term->type != END_OF_LINE && term->type != RBRACE) {
         printf("Warning: Expected end of statement, got %s\n", 
               token_type_to_string(term->type));
     }
-    
+
     // Put back the terminator token if it's a closing brace
     if (term->type == RBRACE) {
-        ungetToken(scanner, term);  // Note: You'd need to implement this
-    } else {
-        free_token(term);
+        goBackToken(scanner);
     }
     
     return (AstNode*)stmt;
@@ -527,16 +475,6 @@ Precedence get_precedence(TokenType type) {
     }
 }
 
-void ungetToken(Scanner* scanner, Token* token) {
-    if (scanner->has_buffered_token) {
-        // If already have a buffered token, free it
-        free_token(scanner->buffered_token);
-    }
-    
-    scanner->buffered_token = token;
-    scanner->has_buffered_token = true;
-}
-
 // Helper to check if a token type is a binary operator
 bool is_binary_operator(TokenType type) {
     return type == ADD || type == SUBTRACT || 
@@ -545,8 +483,7 @@ bool is_binary_operator(TokenType type) {
 }
 
 AstNode* parse_expr(Scanner* scanner, int min_bp) {
-    Token* token = getNextToken(scanner);
-    
+    Token* token = getNextToken(scanner);    
     AstNode* left;
     
     // Handle prefix expressions (literals, variables, etc.)
@@ -558,38 +495,32 @@ AstNode* parse_expr(Scanner* scanner, int min_bp) {
             
         case IDENT: {
             char* name = my_strdup(token->raw_text);
-            free_token(token);
             
             // Check if it's a function call
             token = getNextToken(scanner);
             if (token->type == LPAREN) {
-                free_token(token);
                 left = parse_call_args(scanner, name);
             } else {
-                ungetToken(scanner, token);
+                goBackToken(scanner);
                 left = create_ident_node(name);
             }
             break;
         }
         
         case LPAREN:
-            free_token(token);
             left = parse_expr(scanner, 0);
             token = getNextToken(scanner);
             if (token->type != RPAREN) {
                 printf("Error: Expected closing parenthesis, got %s\n", 
                        token_type_to_string(token->type));
-                free_token(token);
                 free_ast_node(left);
                 return NULL;
             }
-            free_token(token);
             break;
             
         default:
             printf("Error: Unexpected token in expression: %s\n", 
                    token_type_to_string(token->type));
-            free_token(token);
             return NULL;
     }
     
@@ -599,18 +530,17 @@ AstNode* parse_expr(Scanner* scanner, int min_bp) {
         
         // If token is not an operator or binding power is too low, break
         if (!is_binary_operator(token->type)) {
-            ungetToken(scanner, token);
+            goBackToken(scanner);
             break;
         }
         
         Precedence p = get_precedence(token->type);
         if (p.left_bp < min_bp) {
-            ungetToken(scanner, token);
+            goBackToken(scanner);
             break;
         }
         
         TokenType op = token->type;
-        free_token(token);
         
         AstNode* right = parse_expr(scanner, p.right_bp);
         if (!right) {
@@ -646,7 +576,6 @@ AstNode* parse_call_args(Scanner* scanner, char* func_name) {
     Token* token = getNextToken(scanner);
     if (token->type == RPAREN) {
         // No arguments
-        free_token(token);
         return (AstNode*)call;
     }
     
@@ -655,12 +584,11 @@ AstNode* parse_call_args(Scanner* scanner, char* func_name) {
         // If we've already processed some arguments,
         // token is a comma, so get the next token
         if (call->argument_count > 0) {
-            free_token(token);
             token = getNextToken(scanner);
         }
         
         // Parse the argument expression
-        ungetToken(scanner, token);
+        goBackToken(scanner);
         AstNode* arg = parse_expr(scanner, 0);
         
         if (!arg) {
@@ -692,12 +620,10 @@ AstNode* parse_call_args(Scanner* scanner, char* func_name) {
     if (token->type != RPAREN) {
         printf("Error: Expected ')' or ',' in function call, got %s\n", 
                token_type_to_string(token->type));
-        free_token(token);
         free_ast_node((AstNode*)call);
         return NULL;
     }
     
-    free_token(token);
     return (AstNode*)call;
 }
 
@@ -707,3 +633,4 @@ bool is_statement_start(TokenType type) {
            type == RETURN || type == LBRACE;
            // Add more statement types as needed
 }
+

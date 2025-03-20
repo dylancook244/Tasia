@@ -15,8 +15,11 @@ Scanner* init_scanner(const char* filepath) {
         return NULL;
     }
 
-    scanner->has_buffered_token = false;
-    scanner->buffered_token = NULL;
+    scanner->capacity = 16;
+    scanner->tokens = malloc(sizeof(Token*) * scanner->capacity);
+
+    scanner->count = 0;
+    scanner->position = 0;
 
     scanner->line = 1;
     scanner->column = 0;
@@ -56,7 +59,7 @@ char advance_char(Scanner* scanner) {
     return scanner->current_char;
 }
 
-Token* getNextToken(Scanner* scanner) {
+Token* tokenize(Scanner* scanner) {
     // skip spaces, spaces not included
     while (isspace(scanner->current_char) && scanner->current_char != '\n') {
         advance_char(scanner);
@@ -66,17 +69,7 @@ Token* getNextToken(Scanner* scanner) {
     Token* token = malloc(sizeof(Token));
     if (!token) return NULL;
     
-    token->line = scanner->line;
-    token->column = scanner->column;
     token->raw_text = NULL;
-
-    // If we have a buffered token, return it
-    if (scanner->has_buffered_token) {
-        Token* token = scanner->buffered_token;
-        scanner->has_buffered_token = false;
-        scanner->buffered_token = NULL;
-        return token;
-    }
 
     // get full words for identifiers or other
     if (isalpha(scanner->current_char) || scanner->current_char == '_') {
@@ -299,21 +292,65 @@ Token* getNextToken(Scanner* scanner) {
     return token;
 }
 
-static void ungetToken(Scanner* scanner, Token* token) {
-    if (scanner->has_buffered_token) {
-        // Already have a buffered token, free the old one
-        free_token(scanner->buffered_token);
+Token* getNextToken(Scanner* scanner) {
+    Token* next_token = tokenize(scanner);
+
+    // check capacity, add space just in case
+    if (scanner->count == scanner->capacity) {
+        // double capacity
+        int new_capacity = scanner->capacity * 2;
+        Token** new_tokens = realloc(scanner->tokens, sizeof(Token*) * new_capacity);
+
+        scanner->capacity = new_capacity;
+        scanner->tokens = new_tokens;
+    }
+
+    // if we're at this point we have plenty of size, can put next token in.
+    scanner->tokens[scanner->count] = next_token;
+    scanner->count++;
+    scanner->position++;
+
+
+    return next_token;
+}
+
+void goBackToken(Scanner* scanner) {
+    // Get the token we want to remove
+    Token* token = scanner->tokens[scanner->count - 1];
+        
+    // Go back in the file by the token's text length
+    int token_length = strlen(token->raw_text) + 1;
+    
+    // Handle special cases for newlines and other tokens
+    if (token->type == END_OF_LINE) {
+        scanner->line--; // Go back one line
+        // Need to find the column position at the end of the previous line
+        // This is more complex and might require tracking
+    } else {
+        // For normal tokens, just go back by the token's length
+        scanner->column -= token_length;
+        fseek(scanner->file, -token_length, SEEK_CUR);
     }
     
-    scanner->buffered_token = token;
-    scanner->has_buffered_token = true;
+    // Free the token and adjust the counters
+    free_token(token);
+    scanner->tokens[scanner->count - 1] = NULL; // Clear the pointer
+    scanner->count--;
+    scanner->position--;
+    
 }
 
 // free the scanner and file we're scanning
 void free_scanner(Scanner* scanner) {
     if (scanner) {
-        // fclose because it's a file
+        // fclose because we store source file in scanner
         if (scanner->file) fclose(scanner->file);
+
+        for (int i = 0; i < scanner->count; i++) {
+            free_token(scanner->tokens[i]);
+        }   
+        free(scanner->tokens);
+
         free(scanner);
     }
 }

@@ -33,6 +33,5 @@ AstNode* parse_call_args(Scanner* scanner, char* func_name);
 
 bool is_binary_operator(TokenType type);
 Precedence get_precedence(TokenType type);
-void ungetToken(Scanner* scanner, Token* token);
 
 #endif
