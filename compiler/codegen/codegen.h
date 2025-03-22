@@ -13,12 +13,12 @@ typedef struct {
     LLVMContextRef context;
     LLVMModuleRef module;
     LLVMBuilderRef builder;
-    // Symbol table for tracking variables
-    // ... other necessary fields
+    struct SymbolTable* symbol_table;
+
 } CodegenContext;
 
 // Initialize codegen context
-CodegenContext* init_codegen(const char* module_name);
+CodegenContext* create_codegen(const char* module_name);
 
 // Generate LLVM IR from AST
 LLVMModuleRef generate_ir(CodegenContext* context, AstNode* ast);

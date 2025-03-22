@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "../scanner/scanner.h"
 #include "../ast/ast.h"
+#include "../symbol_table/symbol_table.h"
 
 static char* my_strdup(const char* str) {
     size_t len = strlen(str) + 1;
@@ -15,7 +16,7 @@ static char* my_strdup(const char* str) {
     return new_str;
 }
 
-AstNode* parse_program(Scanner* scanner) {
+AstNode* parse_program(Scanner* scanner, SymbolTable* symbol_table) {
     printf("\n\n=== SOURCE CODE ===\n");
 
     // Reset the scanner to the beginning of the file
@@ -68,7 +69,7 @@ AstNode* parse_program(Scanner* scanner) {
         AstNode* node = NULL;
         switch (token->type) { 
             case FUNC:
-                node = parse_function(scanner, token);
+                node = parse_function(scanner, token, symbol_table);
                 // Add the node to the program's statements array
                 if (node != NULL) {
                     if (program->statement_count >= capacity) {
@@ -118,7 +119,7 @@ void print_token_array(Scanner* scanner) {
 
 // this function is really long, 
 // partially due to a shit ton of crucial error messages
-AstNode* parse_function(Scanner* scanner, Token* func_token) {
+AstNode* parse_function(Scanner* scanner, Token* func_token, SymbolTable* symbol_table) {
     
     // Get function name
     Token* name_token = getNextToken(scanner);
@@ -268,6 +269,43 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
             token_type_to_string(token->type));
         return NULL;
     }
+
+    // make sure function isn't already in the symbol table
+    if (lookup_symbol_current_scope(symbol_table, func_name)) {
+        printf("Error: what the hell fucking conveyed you to write the same damn function twice? TWICE!? '%s' is already defined idiot\n", func_name);
+        // free parameters (there's a lot)
+        for(int i = 0; i < param_count; i++) {
+            free(param_names[i]);
+            free(param_types[i]);
+        }
+        free(param_names);
+        free(param_types);
+        free(func_name);
+        return NULL;
+    }
+
+    // add function to the symbol table
+    Symbol* func_sym = add_symbol(
+        symbol_table,
+        func_name,
+        SYMBOL_FUNCTION,
+        return_type,
+        param_types,
+        param_count
+    );
+
+    if (!func_sym) {
+        printf("Error: failed to add function '%s' to symbol_table\n", func_name);
+        // free parameters (there's a lot)
+        for(int i = 0; i < param_count; i++) {
+            free(param_names[i]);
+            free(param_types[i]);
+        }
+        free(param_names);
+        free(param_types);
+        free(func_name);
+        return NULL;
+    }
     
     // Create the function node
     FuncDeclNode* func = (FuncDeclNode*)create_func_node(func_name, return_type);
@@ -275,19 +313,45 @@ AstNode* parse_function(Scanner* scanner, Token* func_token) {
     func->param_types = param_types;
     func->param_count = param_count;
 
+    // enter a new scope for function body
+    enter_scope(symbol_table);
+
+    // Add parameters to the symbol table
+    for (int i = 0; i < param_count; i++) {
+        Symbol* param_sym = add_symbol(
+            symbol_table,
+            param_names[i],
+            SYMBOL_VARIABLE,
+            param_types[i],
+            NULL,
+            0
+        );
+        
+        if (param_sym) {
+            // Parameters are initialized by default
+            param_sym->is_initialized = true;
+            // Parameters are immutable by default (can change this if you want)
+            param_sym->is_mutable = false;
+        }
+    }
+
     // Parse the function body as a block
-    func->body = parse_block(scanner);
+    func->body = parse_block(scanner, symbol_table);
 
     // Check if block parsing failed
     if (!func->body) {
+        // now we're freeing the scope because freeing the ast node isn't enough
+        exit_scope(symbol_table);
         free_ast_node((AstNode*)func);
         return NULL;
     }
 
+    exit_scope(symbol_table);
+
     return (AstNode*)func;
 }
 
-AstNode* parse_block(Scanner* scanner) {
+AstNode* parse_block(Scanner* scanner, SymbolTable* symbol_table) {
     // create a block node
     BlockNode* block = (BlockNode*)create_block_node();
     if (!block) return NULL;
@@ -301,6 +365,9 @@ AstNode* parse_block(Scanner* scanner) {
         return NULL;
     }
 
+    // create new scope for block
+    enter_scope(symbol_table);
+
     // already ate opening brace, parse til closing brace
     Token* token = getNextToken(scanner);
 
@@ -309,10 +376,11 @@ AstNode* parse_block(Scanner* scanner) {
         // skip newlines
         if (token->type == END_OF_LINE) {
             token = getNextToken(scanner);
+            continue;
         }
 
         // parse next statement in the function
-        AstNode* stmt = parse_statement(scanner, token);
+        AstNode* stmt = parse_statement(scanner, token, symbol_table);
 
         // add statement to block if valid
         if (stmt) {
@@ -324,6 +392,7 @@ AstNode* parse_block(Scanner* scanner) {
                 if (!block->statements) {
                     // handle allocation failure
                     free_ast_node((AstNode*)block);
+                    exit_scope(symbol_table);
                     return NULL;
                 }
             }
@@ -340,13 +409,16 @@ AstNode* parse_block(Scanner* scanner) {
     if (token->type == END_OF_FILE) {
         printf("Error: Unexpected end of file, expected '}'\n");
         free_ast_node((AstNode*)block);
+        exit_scope(symbol_table);
         return NULL;
     }
+
+    exit_scope(symbol_table);
         
     return (AstNode*)block;
 }
 
-AstNode* parse_statement(Scanner* scanner, Token* token) {
+AstNode* parse_statement(Scanner* scanner, Token* token, SymbolTable* symbol_table) {
     // Decide what kind of statement to parse based on the token
     switch (token->type) {
         case INT:
@@ -355,7 +427,7 @@ AstNode* parse_statement(Scanner* scanner, Token* token) {
         case STRING:
         case BOOL:
             // This is a variable declaration
-            return parse_var_decl(scanner, token);
+            return parse_var_decl(scanner, token, symbol_table);
 
         case INT_LITERAL:
         case FLOAT_LITERAL:
@@ -363,16 +435,16 @@ AstNode* parse_statement(Scanner* scanner, Token* token) {
         case CHAR_LITERAL:
         case BOOL_LITERAL:
             printf("Warning: Standalone literal has no effect\n");
-            return parse_expr_stmt(scanner, token);
+            return parse_expr_stmt(scanner, token, symbol_table);
             
         case RETURN:
-            return parse_return_stmt(scanner);
+            return parse_return_stmt(scanner, symbol_table);
             
         case LBRACE:
-            return parse_block(scanner);
+            return parse_block(scanner, symbol_table);
             
         case IDENT:
-            return parse_expr_stmt(scanner, token);
+            return parse_expr_stmt(scanner, token, symbol_table);
             
         default:
             printf("Error: Unexpected token in statement: %s\n", 
@@ -381,7 +453,7 @@ AstNode* parse_statement(Scanner* scanner, Token* token) {
     }
 }
 
-AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
+AstNode* parse_var_decl(Scanner* scanner, Token* type_token, SymbolTable* symbol_table) {
     // Save the type
     char* type = my_strdup(type_token->raw_text);
     
@@ -397,14 +469,24 @@ AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
     // Save the name
     char* name = my_strdup(name_token->raw_text);
 
+    // Check if the variable already exists in the current scope
+    if (lookup_symbol_current_scope(symbol_table, name)) {
+        printf("Error: Variable '%s' already declared in this scope\n", name);
+        free(type);
+        free(name);
+        return NULL;
+    }
+
     // Check for assignment operator
     Token* assign_token = getNextToken(scanner);
     AstNode* initializer = NULL;
+    bool is_initialized = false;
     
     if (assign_token->type == ASSIGN) {
         
         // Parse the initializer expression
-        initializer = parse_expr(scanner, 0);
+        is_initialized = true;
+        initializer = parse_expr(scanner, 0, symbol_table);
         
         if (!initializer) {
             printf("Error: Invalid initializer expression\n");
@@ -413,12 +495,34 @@ AstNode* parse_var_decl(Scanner* scanner, Token* type_token) {
             return NULL;
         }
     }
+
+    // Add variable to symbol table
+    Symbol* var_symbol = add_symbol(
+        symbol_table,
+        name,
+        SYMBOL_VARIABLE,
+        type,
+        NULL,
+        0
+    );
+    
+    if (!var_symbol) {
+        printf("Error: Failed to add variable '%s' to symbol table\n", name);
+        free(type);
+        free(name);
+        if (initializer) free_ast_node(initializer);
+        return NULL;
+    }
+    
+    // Set variable properties
+    var_symbol->is_initialized = is_initialized;
+    var_symbol->is_mutable = true;  // Default to mutable for now
     
     // Create the variable declaration node
     return create_var_node(name, type, initializer);
 }
 
-AstNode* parse_return_stmt(Scanner* scanner) {
+AstNode* parse_return_stmt(Scanner* scanner, SymbolTable* symbol_table) {
     // Create the return statement node
     ReturnStmtNode* ret_stmt = (ReturnStmtNode*)create_return_node();
     
@@ -433,9 +537,9 @@ AstNode* parse_return_stmt(Scanner* scanner) {
     return (AstNode*)ret_stmt;
 }
 
-AstNode* parse_expr_stmt(Scanner* scanner, Token* token) {
+AstNode* parse_expr_stmt(Scanner* scanner, Token* token, SymbolTable* symbol_table) {
     goBackToken(scanner);
-    AstNode* expr = parse_expr(scanner, 0);
+    AstNode* expr = parse_expr(scanner, 0, symbol_table);
     
     if (!expr) {
         return NULL;  // Error already printed in parse_expr
@@ -482,7 +586,7 @@ bool is_binary_operator(TokenType type) {
            type == ASSIGN;
 }
 
-AstNode* parse_expr(Scanner* scanner, int min_bp) {
+AstNode* parse_expr(Scanner* scanner, int min_bp, SymbolTable* symbol_table) {
     Token* token = getNextToken(scanner);    
     AstNode* left;
     
@@ -495,11 +599,19 @@ AstNode* parse_expr(Scanner* scanner, int min_bp) {
             
         case IDENT: {
             char* name = my_strdup(token->raw_text);
+
+            // Look up the identifier in the symbol table
+            Symbol* symbol = lookup_symbol(symbol_table, name);
+            if (!symbol) {
+                printf("Error: Undeclared identifier '%s'\n", name);
+                free(name);
+                return NULL;
+            }
             
             // Check if it's a function call
             token = getNextToken(scanner);
             if (token->type == LPAREN) {
-                left = parse_call_args(scanner, name);
+                left = parse_call_args(scanner, name, symbol_table);
             } else {
                 goBackToken(scanner);
                 left = create_ident_node(name);
@@ -508,7 +620,7 @@ AstNode* parse_expr(Scanner* scanner, int min_bp) {
         }
         
         case LPAREN:
-            left = parse_expr(scanner, 0);
+            left = parse_expr(scanner, 0, symbol_table);
             token = getNextToken(scanner);
             if (token->type != RPAREN) {
                 printf("Error: Expected closing parenthesis, got %s\n", 
@@ -542,22 +654,41 @@ AstNode* parse_expr(Scanner* scanner, int min_bp) {
         
         TokenType op = token->type;
         
-        AstNode* right = parse_expr(scanner, p.right_bp);
+        AstNode* right = parse_expr(scanner, p.right_bp, symbol_table);
         if (!right) {
             free_ast_node(left);
             return NULL;
         }
         
         left = create_binexpr_node(left, op, right);
+
+        // Mark variables as initialized after assignment
+        if (op == ASSIGN && left->type == NODE_BINARY_EXPR) {
+            BinaryExprNode* bin = (BinaryExprNode*)left;
+            if (bin->left->type == NODE_IDENT_EXPR) {
+                IdentExprNode* ident = (IdentExprNode*)bin->left;
+                Symbol* symbol = lookup_symbol(symbol_table, ident->name);
+                if (symbol) {
+                    symbol->is_initialized = true;
+                }
+            }
+        }
     }
     
     return left;
 }
 
 // Helper for parsing function call arguments
-AstNode* parse_call_args(Scanner* scanner, char* func_name) {
+AstNode* parse_call_args(Scanner* scanner, char* func_name, SymbolTable* symbol_table) {
     // Create an identifier node for the function name
     AstNode* func_ident = create_ident_node(func_name);
+
+    // Look up the function in the symbol table to get parameter info
+    Symbol* func_sym = lookup_symbol(symbol_table, func_name);
+    int expected_param_count = 0;
+    if (func_sym && func_sym->kind == SYMBOL_FUNCTION) {
+        expected_param_count = func_sym->param_count;
+    }
     
     // Create a call expression node
     CallExprNode* call = (CallExprNode*)create_call_node(func_ident);
@@ -589,7 +720,7 @@ AstNode* parse_call_args(Scanner* scanner, char* func_name) {
         
         // Parse the argument expression
         goBackToken(scanner);
-        AstNode* arg = parse_expr(scanner, 0);
+        AstNode* arg = parse_expr(scanner, 0, symbol_table);
         
         if (!arg) {
             printf("Error: Invalid function argument\n");

@@ -170,7 +170,7 @@ Symbol* add_symbol(SymbolTable* table, const char* name, SymbolKind kind, const 
     }
 
     // add to hash table
-    unsigned int hash = hash_string(name) & table->current_scope->capacity;
+    unsigned int hash = hash_string(name) % table->current_scope->capacity;
     symbol->next = table->current_scope->symbols[hash];
     table->current_scope->symbols[hash] = symbol;
     table->current_scope->symbol_count++;
@@ -325,3 +325,51 @@ void release_borrow(SymbolTable* table, Symbol* borrower) {
     
     borrower->borrowed_from = NULL;
 }
+
+void dump_scope(Scope* scope, int indent) {
+    printf("%*sScope Level %d:\n", indent, "", scope->level);
+    
+    // Print all symbols in this scope
+    for (int i = 0; i < scope->capacity; i++) {
+        Symbol* symbol = scope->symbols[i];
+        while (symbol) {
+            printf("%*s- %s: ", indent + 2, "", symbol->name);
+            
+            switch (symbol->kind) {
+                case SYMBOL_VARIABLE:
+                    printf("Variable, Type: %s, Mutable: %s, Initialized: %s\n",
+                           symbol->type ? symbol->type : "none",
+                           symbol->is_mutable ? "yes" : "no",
+                           symbol->is_initialized ? "yes" : "no");
+                    break;
+                    
+                case SYMBOL_FUNCTION:
+                    printf("Function, Return Type: %s, Params: %d\n",
+                           symbol->type ? symbol->type : "void",
+                           symbol->param_count);
+                    break;
+                    
+                default:
+                    printf("Unknown kind\n");
+                    break;
+            }
+            
+            symbol = symbol->next;
+        }
+    }
+    
+    // Recursively print child scopes
+    for (int i = 0; i < scope->child_count; i++) {
+        dump_scope(scope->children[i], indent + 4);
+    }
+}
+
+void dump_symbol_table(SymbolTable* table) {
+    printf("\n=== SYMBOL TABLE DUMP ===\n");
+    
+    // Implement a recursive function to print all symbols in all scopes
+    dump_scope(table->global_scope, 0);
+    
+    printf("=== END SYMBOL TABLE DUMP ===\n\n");
+}
+

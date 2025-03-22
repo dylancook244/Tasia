@@ -105,15 +105,30 @@ char* compile(char* filepath) {
     printf("\nCompiling %s", filepath);
 
     // Initialize scanner
-    Scanner* scanner = init_scanner(filepath);
+    Scanner* scanner = create_scanner(filepath);
+    
+    // Create the symbol table
+    SymbolTable* symbol_table = create_symbol_table();
+    if (!symbol_table) {
+        printf("Error: Failed to create symbol table\n");
+        free_scanner(scanner);
+        return NULL;
+    }
 
-    // Parse program and build AST + symbol table
-    AstNode* ast = parse_program(scanner);
-    SymbolTable* symbol_table = ((ProgramNode*)ast)->symbol_table;
+    // Parse program and build AST
+    AstNode* ast = parse_program(scanner, symbol_table);
+    if (!ast) {
+        printf("Error: Failed to parse program\n");
+        free_symbol_table(symbol_table);
+        free_scanner(scanner);
+        return NULL;
+    }
 
     // Display AST for debugging
     printf("\n\n=== AST DUMP ===\n");
     dump_ast(ast, 0);
+
+    dump_symbol_table(symbol_table);
     
     // Semantic checking
     if (!check_semantics(ast, symbol_table)) {

@@ -19,7 +19,7 @@ typedef struct {
 } Scanner;
 
 // make the scanner
-Scanner* init_scanner(const char* filepath);
+Scanner* create_scanner(const char* filepath);
 
 // advance characters
 char advance_char(Scanner* scanner);

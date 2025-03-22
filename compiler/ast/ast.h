@@ -36,7 +36,6 @@ typedef struct {
     AstNode base;              // Base node properties
     AstNode** statements;      // Array of statement nodes (mostly func nodes)
     int statement_count;       // Number of statements
-    struct SymbolTable* symbol_table; // Add this line
 } ProgramNode;
 
 // Function declaration node

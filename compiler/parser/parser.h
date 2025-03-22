@@ -3,6 +3,7 @@
 
 #include "../scanner/scanner.h"
 #include "../ast/ast.h"
+#include "../symbol_table/symbol_table.h"
 
 // We're using Pratt parsing for this compiler.
 // In Pratt parsing, operators have binding powers that determine precedence.
@@ -17,19 +18,19 @@ typedef struct {
 } Precedence;
 
 // Top-level parsing functions
-AstNode* parse_program(Scanner* scanner);
-AstNode* parse_function(Scanner* scanner, Token* func_token);
+AstNode* parse_program(Scanner* scanner, SymbolTable* symbol_table);
+AstNode* parse_function(Scanner* scanner, Token* func_token, SymbolTable* symbol_table);
 
 // Statement parsing
-AstNode* parse_block(Scanner* scanner);
-AstNode* parse_var_decl(Scanner* scanner, Token* type_token);
-AstNode* parse_expr_stmt(Scanner* scanner, Token* token);
-AstNode* parse_return_stmt(Scanner* scanner);
-AstNode* parse_statement(Scanner* scanner, Token* token);
+AstNode* parse_block(Scanner* scanner, SymbolTable* symbol_table);
+AstNode* parse_var_decl(Scanner* scanner, Token* type_token, SymbolTable* symbol_table);
+AstNode* parse_expr_stmt(Scanner* scanner, Token* token, SymbolTable* symbol_table);
+AstNode* parse_return_stmt(Scanner* scanner, SymbolTable* symbol_table);
+AstNode* parse_statement(Scanner* scanner, Token* token, SymbolTable* symbol_table);
 
 // Expression parsing
-AstNode* parse_expr(Scanner* scanner, int min_bp);
-AstNode* parse_call_args(Scanner* scanner, char* func_name);
+AstNode* parse_expr(Scanner* scanner, int min_bp, SymbolTable* symbol_table);
+AstNode* parse_call_args(Scanner* scanner, char* func_name, SymbolTable* symbol_table);
 
 bool is_binary_operator(TokenType type);
 Precedence get_precedence(TokenType type);

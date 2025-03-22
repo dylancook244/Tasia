@@ -65,5 +65,6 @@ bool check_ownership(SymbolTable* table, const char* name, bool is_mutable_acces
 bool borrow_symbol(SymbolTable* table, const char* name, bool is_mutable, Symbol* borrower);
 void release_borrow(SymbolTable* table, Symbol* borrower);
 
-#endif
+void dump_symbol_table(SymbolTable* table);
 
+#endif

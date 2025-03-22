@@ -7,7 +7,7 @@
 #include <llvm-c/BitWriter.h>
 #include "../symbol_table/symbol_table.h"
 
-CodegenContext* init_codegen(const char* module_name) {
+CodegenContext* create_codegen(const char* module_name) {
     CodegenContext* context = malloc(sizeof(CodegenContext));
     if (!context) return NULL;
 
@@ -24,11 +24,14 @@ void generate_code(AstNode* ast, struct SymbolTable* symbol_table, const char* o
     printf("Generating LLVM IR to %s\n", output_file);
     
     // Initialize codegen context
-    CodegenContext* context = init_codegen("tasia_module");
+    CodegenContext* context = create_codegen("tasia_module");
     if (!context) {
         printf("Error: Failed to initialize code generation context\n");
         return;
     }
+    
+    // Set the symbol table in the context
+    context->symbol_table = symbol_table;
     
     // Generate LLVM IR
     LLVMModuleRef module = generate_ir(context, ast);
@@ -38,7 +41,20 @@ void generate_code(AstNode* ast, struct SymbolTable* symbol_table, const char* o
         return;
     }
     
-    // Write the bitcode to file
+    // Dump the module's IR to stdout for debugging
+    printf("\n=== LLVM IR DUMP ===\n");
+    LLVMDumpModule(module);
+    printf("=== END OF COMPILER DUMP ===\n\n");
+    
+    // Write the IR to a file
+    char* error = NULL;
+    LLVMPrintModuleToFile(module, output_file, &error);
+    if (error) {
+        printf("Error: %s\n", error);
+        LLVMDisposeMessage(error);
+    }
+    
+    // Also write the bitcode to file (for llc)
     if (LLVMWriteBitcodeToFile(module, output_file) != 0) {
         printf("Error: Could not write bitcode to file\n");
     } else {
@@ -107,9 +123,6 @@ LLVMValueRef generate_function(CodegenContext* context, FuncDeclNode* func) {
     
     // Check if this is the main function and rename it if needed
     const char* actual_name = func->name;
-    if (strcmp(func->name, "main") == 0) {
-        actual_name = "TASIA_ENTRY_FUNCTION";
-    }
     
     // Create function with potentially renamed function
     LLVMValueRef llvm_func = LLVMAddFunction(context->module, actual_name, func_type);

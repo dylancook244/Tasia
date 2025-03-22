@@ -5,7 +5,7 @@
 #include "scanner.h"
 #include "token.h"
 
-Scanner* init_scanner(const char* filepath) {
+Scanner* create_scanner(const char* filepath) {
     Scanner* scanner = malloc(sizeof(Scanner));
     if (!scanner) return NULL;
 
