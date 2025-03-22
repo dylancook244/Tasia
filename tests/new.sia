@@ -1,0 +1,4 @@
+func main() {
+    my_int = 9
+    return my_int
+}

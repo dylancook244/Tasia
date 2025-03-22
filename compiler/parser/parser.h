@@ -1,79 +1,38 @@
-#ifndef __PARSER_H__
-#define __PARSER_H__
+#ifndef PARSER_H
+#define PARSER_H
 
-#include <map>
-#include <vector>
-#include <string>
-#include <memory>
-#include <iostream>
-#include "lexer/lexer.h"
-#include "lexer/token.h"
-#include "ast/ExprAST.h"
-#include "ast/NumberExprAST.h"
-#include "ast/VariableExprAST.h"
-#include "ast/BinaryExprAST.h"
-#include "ast/CallExprAST.h"
-#include "ast/FuncInterfaceAST.h"
-#include "ast/FuncAST.h"
-#include "ast/BlockExprAST.h"
-#include "ast/DeclarationExprAST.h"
-#include "ast/ReferenceExprAST.h"
-#include "ast/DereferenceExprAST.h"
-#include "ast/StmtAST.h"
-#include "ast/Program.h"
+#include "../scanner/scanner.h"
+#include "../ast/ast.h"
+#include "../symbol_table/symbol_table.h"
 
-// Error structure with source location
-struct ParseError {
-    std::string message;
-    SourceLocation location;
-};
+// We're using Pratt parsing for this compiler.
+// In Pratt parsing, operators have binding powers that determine precedence.
+// Each operator has left_bp (how strongly it binds to its left operand)
+// and right_bp (how strongly it binds to its right operand).
+// Higher numbers = higher precedence. For 3 + 5 * 2, the * has higher
+// binding power (10,11) than + (8,9), so * takes precedence. 
 
-class Parser {
-private:
-    Lexer &lexer;
-    int currentToken;
-    std::map<char, int> binopPrecedence;
-    std::vector<ParseError> errors;
-    std::string currentFilename;
-    int currentLine;
-    int currentColumn;
-    
-    // Helper methods
-    int getNextToken();
-    int getTokPrecedence();
-    SourceLocation getCurrentLocation();
-    void addError(const std::string &msg);
-    
-    // Parsing methods
-    std::unique_ptr<ExprAST> parseNumberExpr();
-    std::unique_ptr<ExprAST> parseParenExpr();
-    std::unique_ptr<ExprAST> parseIdentifierExpr();
-    std::unique_ptr<ExprAST> parsePrimary();
-    std::unique_ptr<ExprAST> parseBinOpRHS(int exprPrec, std::unique_ptr<ExprAST> LHS);
-    std::unique_ptr<ExprAST> parseExpression();
-    std::unique_ptr<ExprAST> parseBlockExpr();
-    std::unique_ptr<FuncInterfaceAST> parseFuncInterface();
-    std::unique_ptr<FuncAST> parseDefinition();
-    std::unique_ptr<FuncInterfaceAST> parseExtern();
-    std::unique_ptr<StmtAST> parseStatement();
-    std::unique_ptr<ExprAST> parseDeclaration();
-    std::unique_ptr<ExprAST> parseReference();
-    std::unique_ptr<ExprAST> parseDereference();
-    
-    // Error handling helpers
-    std::unique_ptr<ExprAST> logError(const char *str);
-    std::unique_ptr<FuncInterfaceAST> logErrorP(const char *str);
-    
-public:
-    // Constructor sets up the parser with a lexer and initializes operator precedence
-    Parser(Lexer &lex, const std::string &filename = "<stdin>");
-    
-    // Main parsing entry point
-    std::unique_ptr<Program> parseFile();
-    
-    // Access parsing results
-    const std::vector<ParseError> &getErrors() const { return errors; }
-    bool hasErrors() const { return !errors.empty(); }
-};
+typedef struct {
+    int left_bp; 
+    int right_bp;
+} Precedence;
 
-#endif // __PARSER_H__
+// Top-level parsing functions
+AstNode* parse_program(Scanner* scanner, SymbolTable* symbol_table);
+AstNode* parse_function(Scanner* scanner, Token* func_token, SymbolTable* symbol_table);
+
+// Statement parsing
+AstNode* parse_block(Scanner* scanner, SymbolTable* symbol_table);
+AstNode* parse_var_decl(Scanner* scanner, Token* type_token, SymbolTable* symbol_table);
+AstNode* parse_expr_stmt(Scanner* scanner, Token* token, SymbolTable* symbol_table);
+AstNode* parse_return_stmt(Scanner* scanner, SymbolTable* symbol_table);
+AstNode* parse_statement(Scanner* scanner, Token* token, SymbolTable* symbol_table);
+
+// Expression parsing
+AstNode* parse_expr(Scanner* scanner, int min_bp, SymbolTable* symbol_table);
+AstNode* parse_call_args(Scanner* scanner, char* func_name, SymbolTable* symbol_table);
+
+bool is_binary_operator(TokenType type);
+Precedence get_precedence(TokenType type);
+
+#endif

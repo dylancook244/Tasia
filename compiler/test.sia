@@ -1,0 +1,4 @@
+func main() {
+    int myint=9 + 8 * 5 - 7 / 12031
+    int myinta=7
+}

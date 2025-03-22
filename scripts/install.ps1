@@ -1,28 +1,48 @@
 # Tasia Installation Script for Windows
 Write-Host "Installing Tasia Programming Language..." -ForegroundColor Blue
 
-# Create installation directory
-$InstallDir = "$env:LOCALAPPDATA\Programs\Tasia"
-if (-not (Test-Path $InstallDir)) {
-    Write-Host "Creating installation directory..."
-    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+# Create a temporary directory for installation
+$TempDir = [System.IO.Path]::Combine($env:TEMP, "TasiaInstall_" + [System.Guid]::NewGuid().ToString())
+Write-Host "Using temporary directory: $TempDir"
+New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
+Set-Location $TempDir
+
+# Clone the repository
+Write-Host "Cloning the Tasia repository..."
+git clone https://github.com/dylancook244/tasia.git
+Set-Location tasia
+
+# Check for LLVM
+if (-not (Test-Path "C:\Program Files\LLVM\bin\llvm-config.exe")) {
+    Write-Host "LLVM not found. Installing LLVM..."
+    # Download and install LLVM
+    $LLVMInstallerUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/LLVM-16.0.0-win64.exe"
+    $LLVMInstallerPath = "$env:TEMP\LLVM-installer.exe"
+    Invoke-WebRequest -Uri $LLVMInstallerUrl -OutFile $LLVMInstallerPath
+    Start-Process -FilePath $LLVMInstallerPath -Args "/S" -Wait
+    # Add LLVM to PATH
+    $env:Path += ";C:\Program Files\LLVM\bin"
+    [Environment]::SetEnvironmentVariable("Path", $env:Path, "User")
 }
 
-# Download Tasia executable
-Write-Host "Downloading Tasia executable..."
-$DownloadUrl = "https://github.com/dylancook244/tasia/releases/download/v0.0.0/tasia-Windows.exe"
-$ExePath = "$InstallDir\tasia.exe"
-Invoke-WebRequest -Uri $DownloadUrl -OutFile $ExePath
-
-# Add to PATH
-$CurrentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if (-not $CurrentPath.Contains($InstallDir)) {
-    Write-Host "Adding Tasia to your PATH..."
-    [Environment]::SetEnvironmentVariable("Path", "$CurrentPath;$InstallDir", "User")
-    # Refresh PATH in current session
-    $env:Path = [Environment]::GetEnvironmentVariable("Path", "User")
+# Check for Clang
+if (-not (Get-Command "clang.exe" -ErrorAction SilentlyContinue)) {
+    Write-Host "Clang not found. It should be included with LLVM."
+    Write-Host "Please ensure LLVM is properly installed." -ForegroundColor Yellow
 }
 
-Write-Host "Tasia installed successfully!" -ForegroundColor Green
-Write-Host "You can now use Tasia by running the 'tasia' command."
-Write-Host "Try 'tasia help' to get started."
+# Navigate to the compiler directory
+Write-Host "Navigating to compiler directory..."
+Set-Location compiler
+
+# Build and install Tasia
+Write-Host "Building and installing Tasia..."
+make install
+
+# Clean up the repository
+Write-Host "Cleaning up temporary files..."
+Set-Location $env:TEMP
+Remove-Item -Recurse -Force $TempDir
+
+Write-Host "Tasia has been successfully installed!" -ForegroundColor Green
+Write-Host "You can now use the 'tasia' command to compile Tasia programs."
