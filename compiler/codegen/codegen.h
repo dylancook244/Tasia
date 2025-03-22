@@ -14,8 +14,20 @@ typedef struct {
     LLVMModuleRef module;
     LLVMBuilderRef builder;
     struct SymbolTable* symbol_table;
-
+    
+    // Add a hash table or other structure to store variable mappings
+    // This is a simplified approach - in a real implementation, you'd use a proper hash table
+    struct {
+        char** names;
+        LLVMValueRef* values;
+        int count;
+        int capacity;
+    } var_mappings;
 } CodegenContext;
+
+// Functions to manage variable mappings
+void add_variable_mapping(CodegenContext* context, const char* name, LLVMValueRef value);
+LLVMValueRef get_variable_mapping(CodegenContext* context, const char* name);
 
 // Initialize codegen context
 CodegenContext* create_codegen(const char* module_name);
