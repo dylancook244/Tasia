@@ -21,6 +21,7 @@ const char* token_type_to_string(TokenType type) {
         case END_OF_FILE:  return "END_OF_FILE";
         case END_OF_LINE:  return "END_OF_LINE";
         case COMMENT:      return "COMMENT";
+        case SEMICOLON:    return "SEMICOLON";
 
         case IDENT:        return "IDENT";
 

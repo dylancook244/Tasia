@@ -10,6 +10,7 @@ typedef enum {
     END_OF_FILE,    // EOF
     END_OF_LINE,    // \n
     COMMENT,        // #
+    SEMICOLON,      // ;
 
     IDENT,          // user specified
 

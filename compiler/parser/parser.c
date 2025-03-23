@@ -55,9 +55,9 @@ AstNode* parse_program(Scanner* scanner, SymbolTable* symbol_table) {
     
     while (token->type != END_OF_FILE) {
         // Process token
-        printf("\nToken: %s, raw_text: '%s', Line: %d, Col: %d",
-            token_type_to_string(token->type),
-            token->raw_text);
+        // printf("\nToken: %s, raw_text: '%s', Line: %d, Col: %d",
+        //     token_type_to_string(token->type),
+        //     token->raw_text);
     
         // skip newlines
         if (token->type == END_OF_LINE) {
