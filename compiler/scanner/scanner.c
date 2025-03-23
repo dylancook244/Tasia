@@ -98,12 +98,6 @@ Token* tokenize(Scanner* scanner) {
             keyword_type = INT;
         } else if (strcmp(buffer, "float") == 0) {
             keyword_type = FLOAT;
-        } else if (strcmp(buffer, "array") == 0) {
-            keyword_type = ARRAY;
-        } else if (strcmp(buffer, "list") == 0) {
-            keyword_type = LIST;
-        } else if (strcmp(buffer, "tuple") == 0) {
-            keyword_type = TUPLE;
         } else if (strcmp(buffer, "char") == 0) {
             keyword_type = CHAR;
         } else if (strcmp(buffer, "string") == 0) {
@@ -116,6 +110,9 @@ Token* tokenize(Scanner* scanner) {
             token->type = BOOL_LITERAL;
             token->value.bool_value = true;
         } else if (strcmp(buffer, "false") == 0) { // bool literals false
+            token->type = BOOL_LITERAL;
+            token->value.bool_value = false;
+        } else if (strcmp(buffer, "print") == 0) { // bool literals false
             token->type = BOOL_LITERAL;
             token->value.bool_value = false;
         }
@@ -284,9 +281,9 @@ Token* tokenize(Scanner* scanner) {
             token->type = ASSIGN;
             token->raw_text = my_strdup("=");
             break;
-        case ',':
-            token->type = COMMA;
-            token->raw_text = my_strdup(",");
+        case ';':
+            token->type = SEMICOLON;
+            token->raw_text = my_strdup(";");
             break;
         // Add other characters as needed
         default:
@@ -325,29 +322,78 @@ Token* getNextToken(Scanner* scanner) {
 }
 
 void goBackToken(Scanner* scanner) {
-    // Get the token we want to remove
-    Token* token = scanner->tokens[scanner->count - 1];
-        
-    // Go back in the file by the token's text length
-    int token_length = strlen(token->raw_text) + 1;
-    
-    // Handle special cases for newlines and other tokens
-    if (token->type == END_OF_LINE) {
-        scanner->line--; // Go back one line
-        // Need to find the column position at the end of the previous line
-        // This is more complex and might require tracking
-    } else {
-        // For normal tokens, just go back by the token's length
-        scanner->column -= token_length;
-        fseek(scanner->file, -token_length, SEEK_CUR);
+    if (scanner->count <= 0 || scanner->position <= 0) {
+        // Nothing to go back to
+        return;
     }
     
-    // Free the token and adjust the counters
+    // Get the token we're removing
+    Token* token = scanner->tokens[scanner->count - 1];
+    
+    // Free the token and adjust counters
     free_token(token);
-    scanner->tokens[scanner->count - 1] = NULL; // Clear the pointer
+    scanner->tokens[scanner->count - 1] = NULL;
     scanner->count--;
     scanner->position--;
     
+    // Rewind the file to beginning
+    rewind(scanner->file);
+    
+    // Reset scanner state
+    scanner->line = 1;
+    scanner->column = 1;
+    
+    // Read first character
+    int c = fgetc(scanner->file);
+    scanner->current_char = (c == EOF) ? '\1' : (char)c;
+    
+    // Re-scan up to the position we need
+    for (int i = 0; i < scanner->position; i++) {
+        // We know these tokens are already valid, so we can just skip
+        // to the end of each one by advancing the scanner appropriately
+        Token* existing_token = scanner->tokens[i];
+        
+        // For each token, advance the scanner by finding its end position
+        // This depends on token type
+        switch (existing_token->type) {
+            case STRING_LITERAL:
+                // Navigate to start of string (quote)
+                while (scanner->current_char != '"' && scanner->current_char != '\1') {
+                    advance_char(scanner);
+                }
+                // Skip the opening quote
+                advance_char(scanner);
+                // Move through string content
+                while (scanner->current_char != '"' && scanner->current_char != '\1') {
+                    advance_char(scanner);
+                }
+                // Skip the closing quote
+                advance_char(scanner);
+                break;
+                
+            case COMMENT:
+                // Skip until end of line
+                while (scanner->current_char != '\n' && scanner->current_char != '\1') {
+                    advance_char(scanner);
+                }
+                break;
+                
+            // Handle other special cases...
+                
+            default:
+                // For most tokens, scan past the raw text
+                for (size_t j = 0; j < strlen(existing_token->raw_text); j++) {
+                    advance_char(scanner);
+                }
+                
+                // Skip any whitespace after the token
+                while (isspace(scanner->current_char) && 
+                       scanner->current_char != '\n' && 
+                       scanner->current_char != '\1') {
+                    advance_char(scanner);
+                }
+        }
+    }
 }
 
 // free the scanner and file we're scanning
